@@ -2,10 +2,14 @@
 Telegram bot — real-time control and monitoring interface.
 
 Commands:
+  /start    — Welcome message + how the bot works
+  /help     — List all commands
+  /guide    — Step-by-step guide on how SabiBot works
+  /how      — How to fund, trade, and earn money
   /status   — Portfolio summary, P&L, drawdown
   /trades   — Recent trades
-  /balance  — Current USDC balance on Polygon
   /markets  — Top watched markets and prices
+  /signals  — Current signals the bot is tracking
   /pause    — Pause trading (no new orders)
   /resume   — Resume trading
   /reset    — Reset drawdown halt
@@ -17,9 +21,10 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
+    CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
 )
@@ -37,12 +42,190 @@ _paused = False
 def _authorized(func):
     """Decorator: only allow commands from the configured chat_id."""
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if str(update.effective_chat.id) != settings.telegram_chat_id:
-            await update.message.reply_text("Unauthorized.")
+        chat_id = update.effective_chat.id if update.effective_chat else None
+        if str(chat_id) != settings.telegram_chat_id:
+            if update.message:
+                await update.message.reply_text("Unauthorized.")
             return
         return await func(update, context)
     return wrapper
 
+
+# ── /start — Welcome ─────────────────────────────────────────────
+
+@_authorized
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Welcome message with interactive menu."""
+    msg = (
+        "Welcome to SabiBot!\n"
+        "Your autonomous Polymarket trading agent.\n\n"
+
+        "I scan news 24/7, analyze markets using AI, "
+        "and execute trades automatically on Polymarket.\n\n"
+
+        f"Mode: {settings.trading_mode.value.upper()}\n"
+        f"AI: {settings.llm_primary_provider.value.upper()}\n\n"
+
+        "Quick start:\n"
+        "/guide - How the bot works (A to Z)\n"
+        "/how - How to fund & start earning\n"
+        "/status - Check portfolio\n"
+        "/help - All commands"
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton("How It Works", callback_data="guide"),
+            InlineKeyboardButton("How To Fund", callback_data="how"),
+        ],
+        [
+            InlineKeyboardButton("Portfolio Status", callback_data="status"),
+            InlineKeyboardButton("View Markets", callback_data="markets"),
+        ],
+        [
+            InlineKeyboardButton("All Commands", callback_data="help"),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(msg, reply_markup=reply_markup)
+
+
+# ── /help — All commands ─────────────────────────────────────────
+
+@_authorized
+async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    msg = (
+        "SabiBot Commands\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "INFO\n"
+        "/start - Welcome + quick start\n"
+        "/guide - How the bot works A-Z\n"
+        "/how - How to fund & earn\n"
+        "/help - This list\n\n"
+        "MONITORING\n"
+        "/status - Portfolio, P&L, risk\n"
+        "/trades - Open positions\n"
+        "/markets - Top markets being watched\n"
+        "/signals - Active trading signals\n\n"
+        "CONTROL\n"
+        "/pause - Stop placing new trades\n"
+        "/resume - Resume trading\n"
+        "/reset - Reset drawdown safety halt\n"
+        "/kill - EMERGENCY: cancel all & halt"
+    )
+    await update.message.reply_text(msg)
+
+
+# ── /guide — How SabiBot works A-Z ──────────────────────────────
+
+@_authorized
+async def cmd_guide(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    msg = (
+        "How SabiBot Works (A to Z)\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+
+        "STEP 1: News Scanning (every 60 seconds)\n"
+        "The bot scans 9+ RSS news feeds (Reuters, AP, BBC, "
+        "Bloomberg, CoinDesk, etc.) for breaking news.\n\n"
+
+        "STEP 2: AI Analysis\n"
+        "Each news item is sent to Groq AI (Llama 3.3 70B) which:\n"
+        "- Extracts key entities (people, countries, events)\n"
+        "- Classifies sentiment (bullish/bearish/neutral)\n"
+        "- Estimates probability impact on markets\n\n"
+
+        "STEP 3: Market Matching\n"
+        "The bot matches news to Polymarket markets using:\n"
+        "- Named Entity Recognition (spaCy NLP)\n"
+        "- Keyword overlap scoring\n"
+        "- Semantic similarity\n\n"
+
+        "STEP 4: Signal Aggregation\n"
+        "Multiple signals are fused using Bayesian math:\n"
+        "- Each signal gets a confidence weight\n"
+        "- Fresh signals count more (decay over 4 hours)\n"
+        "- Final probability is calculated in log-odds space\n\n"
+
+        "STEP 5: Strategy Evaluation\n"
+        "6 strategies compete for the best trades:\n"
+        "1. Timezone Arb - Trade when Americans sleep\n"
+        "2. Sentiment - Follow breaking news sentiment\n"
+        "3. Momentum - Ride price trends\n"
+        "4. Mean Reversion - Fade overreactions\n"
+        "5. Cross-Market Arb - Exploit related markets\n"
+        "6. Market Making - Provide liquidity for spread\n\n"
+
+        "STEP 6: Risk Check\n"
+        "Every trade must pass:\n"
+        f"- Max position: ${settings.max_position_size_usd}\n"
+        f"- Max exposure: ${settings.max_portfolio_exposure_usd}\n"
+        f"- Max drawdown: {settings.max_drawdown_pct:.0%}\n"
+        "- Kelly criterion sizing (quarter Kelly)\n\n"
+
+        "STEP 7: Execution\n"
+        "Approved trades are placed on Polymarket CLOB.\n"
+        "You earn builder fees on every trade!\n\n"
+
+        "STEP 8: Monitoring\n"
+        "The bot tracks all positions, calculates P&L, "
+        "and sends you alerts on Telegram."
+    )
+    await update.message.reply_text(msg)
+
+
+# ── /how — How to fund and earn ──────────────────────────────────
+
+@_authorized
+async def cmd_how(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    mode = settings.trading_mode.value.upper()
+    wallet = settings.polygon_wallet_address or "Not configured"
+
+    msg = (
+        "How To Fund & Start Earning\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+
+        f"Current mode: {mode}\n"
+        f"Wallet: {wallet[:10]}...{wallet[-6:]}\n\n"
+    )
+
+    if settings.is_paper:
+        msg += (
+            "PAPER MODE (Current)\n"
+            "You're in paper trading mode. No real money is used.\n"
+            "The bot simulates trades to test strategies.\n\n"
+            "WHEN READY FOR REAL MONEY:\n"
+        )
+
+    msg += (
+        "Step 1: Get USDC on Polygon\n"
+        "- Buy USDC on Coinbase, Binance, or any exchange\n"
+        "- Send USDC to your wallet on Polygon network\n"
+        f"- Your wallet: {wallet}\n\n"
+
+        "Step 2: Approve USDC for Polymarket\n"
+        "- Go to polymarket.com and connect your wallet\n"
+        "- Deposit USDC (this approves the contracts)\n\n"
+
+        "Step 3: Switch to LIVE mode\n"
+        "- Set TRADING_MODE=live in Railway env vars\n"
+        "- Redeploy the bot\n\n"
+
+        "HOW YOU EARN:\n"
+        "1. Trading Profits - Bot buys low, sells high\n"
+        "   on prediction markets\n"
+        "2. Builder Fees - You earn a fee on every trade\n"
+        "   placed through the bot (Polymarket builder program)\n\n"
+
+        "RECOMMENDED START:\n"
+        "- Start with $50-100 USDC\n"
+        "- Let it paper trade for 48 hours first\n"
+        "- Check /status daily\n"
+        "- Scale up only after consistent profits"
+    )
+    await update.message.reply_text(msg)
+
+
+# ── /status — Portfolio status ───────────────────────────────────
 
 @_authorized
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -51,50 +234,130 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     risk_status = risk_manager.get_status()
 
     msg = (
-        f"📊 *SabiBot Status*\n"
-        f"Mode: `{settings.trading_mode.value}`\n"
-        f"Paused: `{_paused}`\n\n"
-        f"💰 *Portfolio*\n"
+        "Portfolio Status\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"Mode: {settings.trading_mode.value.upper()}\n"
+        f"Paused: {'Yes' if _paused else 'No'}\n\n"
         f"Value: ${summary.total_value_usd:.2f}\n"
         f"Positions: {len(summary.open_positions)}\n"
         f"Unrealized P&L: ${summary.unrealized_pnl:+.2f}\n"
-        f"Today's P&L: ${summary.realized_pnl_today:+.2f}\n"
+        f"Today P&L: ${summary.realized_pnl_today:+.2f}\n"
         f"Total P&L: ${summary.realized_pnl_total:+.2f}\n"
         f"Win Rate: {summary.win_rate:.0%}\n"
         f"Total Trades: {summary.total_trades}\n\n"
-        f"🛡️ *Risk*\n"
+        "Risk\n"
         f"Exposure: ${risk_status['total_exposure']:.2f}\n"
         f"Drawdown: {risk_status['drawdown']:.1%}\n"
-        f"Halted: `{risk_status['halted']}`"
+        f"Halted: {'Yes' if risk_status['halted'] else 'No'}"
     )
-    await update.message.reply_text(msg, parse_mode="Markdown")
 
+    keyboard = [
+        [
+            InlineKeyboardButton("Trades", callback_data="trades"),
+            InlineKeyboardButton("Markets", callback_data="markets"),
+        ],
+        [
+            InlineKeyboardButton("Signals", callback_data="signals"),
+            InlineKeyboardButton("Refresh", callback_data="status"),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(msg, reply_markup=reply_markup)
+
+
+# ── /trades — Open positions ─────────────────────────────────────
 
 @_authorized
 async def cmd_trades(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show recent trades."""
     positions = await portfolio.get_open_positions()
     if not positions:
-        await update.message.reply_text("No open positions.")
+        await update.message.reply_text(
+            "No open positions yet.\n\n"
+            "The bot is scanning markets and analyzing news.\n"
+            "It will trade when it finds a strong enough signal.\n\n"
+            "Use /guide to learn how it works."
+        )
         return
 
-    lines = ["📋 *Open Positions*\n"]
+    lines = ["Open Positions\n" + "━" * 22 + "\n"]
     for p in positions[:10]:
-        emoji = "🟢" if p.unrealized_pnl >= 0 else "🔴"
+        emoji = "+" if p.unrealized_pnl >= 0 else "-"
         lines.append(
-            f"{emoji} {p.market_question[:50]}\n"
-            f"   {p.side} | {p.shares:.1f} shares @ ${p.entry_price:.3f}\n"
-            f"   Now: ${p.current_price:.3f} | P&L: ${p.unrealized_pnl:+.2f}"
+            f"\n{p.market_question[:50]}\n"
+            f"  {p.side} | {p.shares:.1f} shares @ ${p.entry_price:.3f}\n"
+            f"  Now: ${p.current_price:.3f} | P&L: ${p.unrealized_pnl:+.2f}"
         )
 
-    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+    await update.message.reply_text("\n".join(lines))
 
+
+# ── /markets — Top watched markets ───────────────────────────────
+
+@_authorized
+async def cmd_markets(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show top markets the bot is watching."""
+    from src.main import _markets_cache
+
+    if not _markets_cache:
+        await update.message.reply_text("No markets loaded yet. Wait for next refresh cycle.")
+        return
+
+    # Show top 15 markets by interesting prices (not too close to 0 or 1)
+    interesting = sorted(
+        _markets_cache,
+        key=lambda m: abs(m.outcome_prices.get("Yes", 0.5) - 0.5),
+    )[:15]
+
+    lines = ["Top Watched Markets\n" + "━" * 22 + "\n"]
+    for i, m in enumerate(interesting, 1):
+        yes = m.outcome_prices.get("Yes", 0.5)
+        lines.append(
+            f"\n{i}. {m.question[:55]}\n   YES: ${yes:.3f} | NO: ${1-yes:.3f}")
+
+    lines.append(f"\n\nTotal markets loaded: {len(_markets_cache)}")
+    await update.message.reply_text("\n".join(lines))
+
+
+# ── /signals — Active signals ────────────────────────────────────
+
+@_authorized
+async def cmd_signals(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show current trading signals."""
+    from src.main import _signals_cache, _markets_cache
+
+    if not _signals_cache:
+        await update.message.reply_text(
+            "No signals yet.\n\n"
+            "The bot scans news every 60 seconds.\n"
+            "When it finds news matching a market, "
+            "it creates a signal.\n\n"
+            "Check back in a few minutes!"
+        )
+        return
+
+    lines = ["Active Signals\n" + "━" * 22 + "\n"]
+    # Match signals to market names
+    market_map = {m.condition_id: m.question for m in _markets_cache}
+    for cid, agg in list(_signals_cache.items())[:10]:
+        name = market_map.get(cid, cid[:16] + "...")
+        lines.append(
+            f"\n{name[:50]}\n"
+            f"  Fair value: {agg.fair_value:.3f}\n"
+            f"  Confidence: {agg.confidence:.1%}\n"
+            f"  Sources: {agg.num_signals}"
+        )
+
+    await update.message.reply_text("\n".join(lines))
+
+
+# ── Control commands ─────────────────────────────────────────────
 
 @_authorized
 async def cmd_pause(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global _paused
     _paused = True
-    await update.message.reply_text("⏸️ Trading paused. No new orders will be placed.")
+    await update.message.reply_text("Paused. No new orders will be placed.\nUse /resume to continue.")
     log.warning("trading_paused_via_telegram")
 
 
@@ -102,14 +365,14 @@ async def cmd_pause(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def cmd_resume(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global _paused
     _paused = False
-    await update.message.reply_text("▶️ Trading resumed.")
+    await update.message.reply_text("Resumed! Trading is active again.")
     log.info("trading_resumed_via_telegram")
 
 
 @_authorized
 async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     risk_manager.reset_drawdown_halt()
-    await update.message.reply_text("🔄 Drawdown halt reset. Trading may resume.")
+    await update.message.reply_text("Drawdown halt reset. Trading may resume.")
 
 
 @_authorized
@@ -121,13 +384,231 @@ async def cmd_kill(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     from src.polymarket.clob import clob
     cancelled = await clob.cancel_all()
 
-    msg = "🚨 *EMERGENCY STOP*\nAll orders cancelled. Trading halted."
+    msg = "EMERGENCY STOP\nAll orders cancelled. Trading halted."
     if not cancelled:
-        msg += "\n⚠️ Failed to cancel some orders — check manually."
+        msg += "\nWarning: Failed to cancel some orders. Check manually."
 
-    await update.message.reply_text(msg, parse_mode="Markdown")
+    await update.message.reply_text(msg)
     log.error("emergency_kill_via_telegram")
 
+
+# ── Callback query handler (button presses) ─────────────────────
+
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle inline keyboard button presses."""
+    query = update.callback_query
+    await query.answer()
+
+    # Check authorization
+    if str(query.from_user.id) != settings.telegram_chat_id:
+        return
+
+    data = query.data
+
+    # Create a fake Update with message for reuse of cmd_ handlers
+    # We'll just edit the existing message or send a new one
+    if data == "guide":
+        await _send_guide(query)
+    elif data == "how":
+        await _send_how(query)
+    elif data == "status":
+        await _send_status(query)
+    elif data == "markets":
+        await _send_markets(query)
+    elif data == "signals":
+        await _send_signals(query)
+    elif data == "trades":
+        await _send_trades(query)
+    elif data == "help":
+        await _send_help(query)
+    elif data == "back":
+        await _send_main_menu(query)
+
+
+async def _send_main_menu(query) -> None:
+    msg = (
+        "SabiBot Menu\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"Mode: {settings.trading_mode.value.upper()}\n"
+        f"Paused: {'Yes' if _paused else 'No'}"
+    )
+    keyboard = [
+        [
+            InlineKeyboardButton("How It Works", callback_data="guide"),
+            InlineKeyboardButton("How To Fund", callback_data="how"),
+        ],
+        [
+            InlineKeyboardButton("Status", callback_data="status"),
+            InlineKeyboardButton("Markets", callback_data="markets"),
+        ],
+        [
+            InlineKeyboardButton("Signals", callback_data="signals"),
+            InlineKeyboardButton("Trades", callback_data="trades"),
+        ],
+    ]
+    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def _send_guide(query) -> None:
+    msg = (
+        "How SabiBot Works\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "1. SCAN - Checks 9+ news feeds every 60s\n"
+        "2. ANALYZE - AI reads each headline\n"
+        "3. MATCH - Links news to Polymarket events\n"
+        "4. CALCULATE - Bayesian probability estimation\n"
+        "5. DECIDE - 6 strategies compete for best trade\n"
+        "6. RISK CHECK - Kelly criterion + limits\n"
+        "7. EXECUTE - Places order on Polymarket\n"
+        "8. MONITOR - Tracks P&L, alerts you\n\n"
+        "Use /guide for the full detailed breakdown."
+    )
+    keyboard = [[InlineKeyboardButton("Back to Menu", callback_data="back")]]
+    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def _send_how(query) -> None:
+    wallet = settings.polygon_wallet_address or "Not set"
+    short = f"{wallet[:10]}...{wallet[-6:]}" if len(wallet) > 16 else wallet
+    msg = (
+        "How To Start Earning\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"Mode: {settings.trading_mode.value.upper()}\n"
+        f"Wallet: {short}\n\n"
+        "1. Buy USDC on any exchange\n"
+        "2. Send USDC to wallet (Polygon network)\n"
+        "3. Connect wallet on polymarket.com\n"
+        "4. Set TRADING_MODE=live\n"
+        "5. Bot trades automatically!\n\n"
+        "Start with $50-100. Scale after profits."
+    )
+    keyboard = [[InlineKeyboardButton("Back to Menu", callback_data="back")]]
+    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def _send_status(query) -> None:
+    summary = await portfolio.get_summary()
+    risk_status = risk_manager.get_status()
+    msg = (
+        "Portfolio Status\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"Mode: {settings.trading_mode.value.upper()}\n"
+        f"Value: ${summary.total_value_usd:.2f}\n"
+        f"Positions: {len(summary.open_positions)}\n"
+        f"P&L Today: ${summary.realized_pnl_today:+.2f}\n"
+        f"Total P&L: ${summary.realized_pnl_total:+.2f}\n"
+        f"Win Rate: {summary.win_rate:.0%}\n"
+        f"Trades: {summary.total_trades}\n"
+        f"Drawdown: {risk_status['drawdown']:.1%}"
+    )
+    keyboard = [
+        [
+            InlineKeyboardButton("Refresh", callback_data="status"),
+            InlineKeyboardButton("Trades", callback_data="trades"),
+        ],
+        [InlineKeyboardButton("Back to Menu", callback_data="back")],
+    ]
+    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def _send_markets(query) -> None:
+    from src.main import _markets_cache
+
+    if not _markets_cache:
+        msg = "No markets loaded yet."
+    else:
+        interesting = sorted(
+            _markets_cache,
+            key=lambda m: abs(m.outcome_prices.get("Yes", 0.5) - 0.5),
+        )[:10]
+        lines = ["Top Markets\n" + "━" * 22 + "\n"]
+        for i, m in enumerate(interesting, 1):
+            yes = m.outcome_prices.get("Yes", 0.5)
+            lines.append(
+                f"{i}. {m.question[:45]}\n   YES ${yes:.2f} | NO ${1-yes:.2f}")
+        lines.append(f"\n{len(_markets_cache)} total markets")
+        msg = "\n".join(lines)
+
+    keyboard = [
+        [
+            InlineKeyboardButton("Refresh", callback_data="markets"),
+            InlineKeyboardButton("Signals", callback_data="signals"),
+        ],
+        [InlineKeyboardButton("Back to Menu", callback_data="back")],
+    ]
+    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def _send_signals(query) -> None:
+    from src.main import _signals_cache, _markets_cache
+
+    if not _signals_cache:
+        msg = "No signals yet. Bot scans news every 60s.\nCheck back soon!"
+    else:
+        market_map = {m.condition_id: m.question for m in _markets_cache}
+        lines = ["Active Signals\n" + "━" * 22 + "\n"]
+        for cid, agg in list(_signals_cache.items())[:8]:
+            name = market_map.get(cid, cid[:16] + "...")
+            lines.append(
+                f"\n{name[:45]}\n"
+                f"  Value: {agg.fair_value:.3f} | Conf: {agg.confidence:.0%}"
+            )
+        msg = "\n".join(lines)
+
+    keyboard = [
+        [
+            InlineKeyboardButton("Refresh", callback_data="signals"),
+            InlineKeyboardButton("Markets", callback_data="markets"),
+        ],
+        [InlineKeyboardButton("Back to Menu", callback_data="back")],
+    ]
+    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def _send_trades(query) -> None:
+    positions = await portfolio.get_open_positions()
+    if not positions:
+        msg = "No open positions.\nBot will trade when it finds a strong signal."
+    else:
+        lines = ["Open Positions\n" + "━" * 22 + "\n"]
+        for p in positions[:8]:
+            lines.append(
+                f"\n{p.market_question[:45]}\n"
+                f"  {p.side} {p.shares:.1f} @ ${p.entry_price:.3f}\n"
+                f"  Now: ${p.current_price:.3f} | P&L: ${p.unrealized_pnl:+.2f}"
+            )
+        msg = "\n".join(lines)
+
+    keyboard = [
+        [
+            InlineKeyboardButton("Refresh", callback_data="trades"),
+            InlineKeyboardButton("Status", callback_data="status"),
+        ],
+        [InlineKeyboardButton("Back to Menu", callback_data="back")],
+    ]
+    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def _send_help(query) -> None:
+    msg = (
+        "All Commands\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "/start - Welcome\n"
+        "/guide - How it works\n"
+        "/how - How to fund & earn\n"
+        "/status - Portfolio\n"
+        "/trades - Open positions\n"
+        "/markets - Watched markets\n"
+        "/signals - Active signals\n"
+        "/pause - Stop trading\n"
+        "/resume - Resume trading\n"
+        "/kill - Emergency stop"
+    )
+    keyboard = [[InlineKeyboardButton("Back to Menu", callback_data="back")]]
+    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+# ── Public API ───────────────────────────────────────────────────
 
 def is_paused() -> bool:
     """Check if trading is paused (used by main loop)."""
@@ -142,12 +623,26 @@ async def start_telegram_bot() -> Application | None:
 
     app = Application.builder().token(settings.telegram_bot_token).build()
 
+    # Info commands
+    app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("help", cmd_help))
+    app.add_handler(CommandHandler("guide", cmd_guide))
+    app.add_handler(CommandHandler("how", cmd_how))
+
+    # Monitoring commands
     app.add_handler(CommandHandler("status", cmd_status))
     app.add_handler(CommandHandler("trades", cmd_trades))
+    app.add_handler(CommandHandler("markets", cmd_markets))
+    app.add_handler(CommandHandler("signals", cmd_signals))
+
+    # Control commands
     app.add_handler(CommandHandler("pause", cmd_pause))
     app.add_handler(CommandHandler("resume", cmd_resume))
     app.add_handler(CommandHandler("reset", cmd_reset))
     app.add_handler(CommandHandler("kill", cmd_kill))
+
+    # Button callbacks
+    app.add_handler(CallbackQueryHandler(handle_callback))
 
     await app.initialize()
     await app.start()

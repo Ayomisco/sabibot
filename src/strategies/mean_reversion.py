@@ -116,7 +116,8 @@ class MeanReversionStrategy(BaseStrategy):
                 market_price=market_price,
                 edge=edge,
                 confidence=confidence,
-                suggested_size_usd=min(edge * 150, settings.max_position_size_usd * 0.4),
+                suggested_size_usd=min(
+                    edge * 150, settings.max_position_size_usd * 0.4),
                 max_price=min(max_price, 0.95),
                 reasoning=(
                     f"Mean reversion: price deviated {deviation:+.3f} from "

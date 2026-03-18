@@ -52,11 +52,13 @@ class TestKeywordOverlap:
     """Test Jaccard-inspired keyword overlap scoring."""
 
     def test_identical_sets(self):
-        score, matched = _keyword_overlap_score({"bitcoin", "price"}, {"bitcoin", "price"})
+        score, matched = _keyword_overlap_score(
+            {"bitcoin", "price"}, {"bitcoin", "price"})
         assert score > 0.9
 
     def test_no_overlap(self):
-        score, matched = _keyword_overlap_score({"bitcoin", "crypto"}, {"football", "soccer"})
+        score, matched = _keyword_overlap_score(
+            {"bitcoin", "crypto"}, {"football", "soccer"})
         assert score == 0.0
         assert matched == []
 
@@ -82,8 +84,10 @@ class TestMarketMatching:
 
     def test_relevant_news_matches_market(self):
         """A Bitcoin news headline should match a Bitcoin market."""
-        market = _make_market(question="Will Bitcoin exceed $100K by June 2025?")
-        news_keywords = _extract_keywords("Bitcoin surges past $95,000 amid ETF inflows")
+        market = _make_market(
+            question="Will Bitcoin exceed $100K by June 2025?")
+        news_keywords = _extract_keywords(
+            "Bitcoin surges past $95,000 amid ETF inflows")
         market_keywords = _extract_keywords(market.question)
         score, matched = _keyword_overlap_score(news_keywords, market_keywords)
         # Bitcoin appears in both → should have some overlap
@@ -92,8 +96,10 @@ class TestMarketMatching:
 
     def test_unrelated_news_low_score(self):
         """Unrelated news should have low overlap with market."""
-        market = _make_market(question="Will Bitcoin exceed $100K by June 2025?")
-        news_keywords = _extract_keywords("Major earthquake hits Japan's Fukushima region")
+        market = _make_market(
+            question="Will Bitcoin exceed $100K by June 2025?")
+        news_keywords = _extract_keywords(
+            "Major earthquake hits Japan's Fukushima region")
         market_keywords = _extract_keywords(market.question)
         score, _ = _keyword_overlap_score(news_keywords, market_keywords)
         assert score < 0.15

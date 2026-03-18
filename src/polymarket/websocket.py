@@ -73,7 +73,8 @@ class PolymarketWebSocket:
             try:
                 await self._connect_and_listen()
             except ConnectionClosed as exc:
-                log.warning("ws_disconnected", code=exc.code, reason=str(exc.reason)[:100])
+                log.warning("ws_disconnected", code=exc.code,
+                            reason=str(exc.reason)[:100])
             except Exception as exc:
                 log.error("ws_error", error=str(exc))
 

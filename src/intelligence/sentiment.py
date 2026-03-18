@@ -44,7 +44,8 @@ async def analyze_sentiment(headline: str, body: str = "") -> SentimentResult:
             method="llm",
         )
     except Exception as exc:
-        log.warning("llm_sentiment_failed", error=str(exc), fallback="rule_based")
+        log.warning("llm_sentiment_failed", error=str(
+            exc), fallback="rule_based")
         return _rule_based_sentiment(headline, body)
 
 
@@ -91,13 +92,15 @@ def _rule_based_sentiment(headline: str, body: str = "") -> SentimentResult:
     # Normalize to -1 to +1
     if matches > 0:
         sentiment = max(-1.0, min(1.0, total_sentiment / max(matches, 1)))
-        magnitude = min(1.0, matches * 0.2)  # More keyword hits = higher magnitude
+        # More keyword hits = higher magnitude
+        magnitude = min(1.0, matches * 0.2)
     else:
         sentiment = 0.0
         magnitude = 0.1
 
     # Extract capitalized words as pseudo-entities
-    entities = list(set(re.findall(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b", headline)))[:5]
+    entities = list(
+        set(re.findall(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b", headline)))[:5]
 
     return SentimentResult(
         sentiment=sentiment,

@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     polymarket_clob_url: str = "https://clob.polymarket.com"
     polymarket_ws_url: str = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
     chain_id: int = 137
+    builder_wallet_address: str = ""
 
     # ── Telegram ─────────────────────────────────────────────────
     telegram_bot_token: str = ""

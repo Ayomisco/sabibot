@@ -29,7 +29,8 @@ def main() -> None:
         return
 
     # MATIC balance
-    matic = w3.eth.get_balance(Web3.to_checksum_address(settings.polygon_wallet_address))
+    matic = w3.eth.get_balance(
+        Web3.to_checksum_address(settings.polygon_wallet_address))
     matic_formatted = w3.from_wei(matic, "ether")
 
     # USDC balance
@@ -43,7 +44,8 @@ def main() -> None:
     usdc_formatted = usdc_raw / 1e6  # USDC has 6 decimals
 
     print(f"\nWallet: {settings.polygon_wallet_address}")
-    print(f"Chain:  Polygon {'Mainnet' if settings.chain_id == 137 else 'Testnet'}")
+    print(
+        f"Chain:  Polygon {'Mainnet' if settings.chain_id == 137 else 'Testnet'}")
     print(f"MATIC:  {matic_formatted:.4f}")
     print(f"USDC:   ${usdc_formatted:.2f}")
 

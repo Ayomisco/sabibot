@@ -48,7 +48,8 @@ class CrossMarketArbStrategy(BaseStrategy):
             return []
 
         # Build/update embedding cache for market questions
-        uncached = [m for m in markets if m.condition_id not in self._embedding_cache]
+        uncached = [
+            m for m in markets if m.condition_id not in self._embedding_cache]
         if uncached:
             texts = [m.question for m in uncached]
             embeddings = await embed_texts(texts)
@@ -111,7 +112,8 @@ class CrossMarketArbStrategy(BaseStrategy):
                     market_price=cheap_price,
                     edge=edge,
                     confidence=sim * 0.8,  # Confidence proportional to correlation
-                    suggested_size_usd=min(edge * 200, settings.max_position_size_usd),
+                    suggested_size_usd=min(
+                        edge * 200, settings.max_position_size_usd),
                     max_price=implied_fair - 0.01,
                     reasoning=(
                         f"Cross-market arb: '{cheap.question[:40]}' at {cheap_price:.2f} "

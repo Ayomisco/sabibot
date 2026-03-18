@@ -36,7 +36,8 @@ async def cmd_scan() -> None:
     table.add_column("Time", style="dim", max_width=20)
 
     for item in items[:20]:
-        time_str = item.published_at.strftime("%H:%M") if item.published_at else "?"
+        time_str = item.published_at.strftime(
+            "%H:%M") if item.published_at else "?"
         table.add_row(item.source[:20], item.title[:60], time_str)
 
     console.print(table)
@@ -88,7 +89,8 @@ async def cmd_status() -> None:
 
 def main() -> None:
     if len(sys.argv) < 2:
-        console.print("Usage: python -m src.interface.cli [scan|markets|status]")
+        console.print(
+            "Usage: python -m src.interface.cli [scan|markets|status]")
         sys.exit(1)
 
     cmd = sys.argv[1]

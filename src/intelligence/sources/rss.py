@@ -85,11 +85,13 @@ async def fetch_rss_feeds(
 
     # Sort by recency (newest first, items without dates go last)
     all_items.sort(
-        key=lambda x: x.published_at or datetime.min.replace(tzinfo=timezone.utc),
+        key=lambda x: x.published_at or datetime.min.replace(
+            tzinfo=timezone.utc),
         reverse=True,
     )
 
-    log.info("rss_fetched", total_items=len(all_items), feeds_checked=len(feeds_to_check))
+    log.info("rss_fetched", total_items=len(all_items),
+             feeds_checked=len(feeds_to_check))
     return all_items
 
 

@@ -111,7 +111,8 @@ async def get_top_headlines(
             title=a.get("title", ""),
             url=a.get("url", ""),
             summary=a.get("description", "")[:500],
-            published_at=dateparse.parse(a["publishedAt"]) if a.get("publishedAt") else None,
+            published_at=dateparse.parse(
+                a["publishedAt"]) if a.get("publishedAt") else None,
         )
         for a in articles
     ]

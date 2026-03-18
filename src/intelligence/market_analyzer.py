@@ -55,7 +55,8 @@ async def analyze_news_item(
 
     # Skip low-magnitude news — not worth the LLM calls
     if sentiment.magnitude < 0.2:
-        log.debug("news_too_low_magnitude", headline=headline[:60], magnitude=sentiment.magnitude)
+        log.debug("news_too_low_magnitude",
+                  headline=headline[:60], magnitude=sentiment.magnitude)
         return []
 
     # Step 2: Get active markets if not provided
@@ -96,7 +97,8 @@ async def analyze_news_item(
         if sentiment.summary:
             evidence.append(f"Summary: {sentiment.summary}")
         if match.matched_entities:
-            evidence.append(f"Matched entities: {', '.join(match.matched_entities)}")
+            evidence.append(
+                f"Matched entities: {', '.join(match.matched_entities)}")
 
         try:
             # Step 5: LLM probability estimation (SMART tier — real money decision)
@@ -150,7 +152,8 @@ async def analyze_news_item(
             )
 
         except Exception as exc:
-            log.error("probability_estimation_failed", market=market.question[:60], error=str(exc))
+            log.error("probability_estimation_failed",
+                      market=market.question[:60], error=str(exc))
 
     # Sort by absolute edge (strongest opportunities first)
     opportunities.sort(key=lambda o: abs(o.edge), reverse=True)

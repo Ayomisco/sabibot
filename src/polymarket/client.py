@@ -28,8 +28,10 @@ class Market:
     description: str = ""
     category: str = ""
     end_date: datetime | None = None
-    outcome_prices: dict[str, float] = field(default_factory=dict)  # {"Yes": 0.65, "No": 0.35}
-    tokens: list[dict[str, str]] = field(default_factory=list)  # [{token_id, outcome}]
+    outcome_prices: dict[str, float] = field(
+        default_factory=dict)  # {"Yes": 0.65, "No": 0.35}
+    tokens: list[dict[str, str]] = field(
+        default_factory=list)  # [{token_id, outcome}]
     volume_24h: float = 0.0
     liquidity: float = 0.0
     active: bool = True
@@ -119,7 +121,8 @@ class PolymarketClient:
         end_date = None
         if raw.get("end_date_iso"):
             try:
-                end_date = datetime.fromisoformat(raw["end_date_iso"].replace("Z", "+00:00"))
+                end_date = datetime.fromisoformat(
+                    raw["end_date_iso"].replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 pass
 

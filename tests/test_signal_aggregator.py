@@ -89,7 +89,8 @@ class TestAggregation:
 
     def test_single_bullish_signal(self):
         """One strong bullish signal should shift price up."""
-        signal = self._make_signal(prob=0.80, direction=SignalDirection.BUY_YES)
+        signal = self._make_signal(
+            prob=0.80, direction=SignalDirection.BUY_YES)
         result = aggregate_signals([signal], current_market_price=0.50)
 
         assert result.fair_value > 0.50
@@ -112,7 +113,8 @@ class TestAggregation:
         signal3 = self._make_signal(prob=0.72, minutes_ago=15)
 
         result_single = aggregate_signals([signal1], current_market_price=0.50)
-        result_multi = aggregate_signals([signal1, signal2, signal3], current_market_price=0.50)
+        result_multi = aggregate_signals(
+            [signal1, signal2, signal3], current_market_price=0.50)
 
         assert result_multi.evidence_strength > result_single.evidence_strength
         # More signals = more confident in the shift
@@ -120,10 +122,13 @@ class TestAggregation:
 
     def test_contradicting_signals_cancel(self):
         """Contradicting signals should roughly cancel out."""
-        bullish = self._make_signal(prob=0.70, direction=SignalDirection.BUY_YES)
-        bearish = self._make_signal(prob=0.30, direction=SignalDirection.BUY_NO)
+        bullish = self._make_signal(
+            prob=0.70, direction=SignalDirection.BUY_YES)
+        bearish = self._make_signal(
+            prob=0.30, direction=SignalDirection.BUY_NO)
 
-        result = aggregate_signals([bullish, bearish], current_market_price=0.50)
+        result = aggregate_signals(
+            [bullish, bearish], current_market_price=0.50)
         # Should stay close to market price
         assert abs(result.edge) < 0.10
 
@@ -143,14 +148,17 @@ class TestAggregation:
         reliable = self._make_signal(prob=0.80, reliability=0.9)
         unreliable = self._make_signal(prob=0.80, reliability=0.2)
 
-        result_reliable = aggregate_signals([reliable], current_market_price=0.50)
-        result_unreliable = aggregate_signals([unreliable], current_market_price=0.50)
+        result_reliable = aggregate_signals(
+            [reliable], current_market_price=0.50)
+        result_unreliable = aggregate_signals(
+            [unreliable], current_market_price=0.50)
 
         assert abs(result_reliable.edge) > abs(result_unreliable.edge)
 
     def test_neutral_signals_ignored(self):
         """Neutral signals should not affect aggregation."""
-        neutral = self._make_signal(prob=0.50, direction=SignalDirection.NEUTRAL)
+        neutral = self._make_signal(
+            prob=0.50, direction=SignalDirection.NEUTRAL)
         result = aggregate_signals([neutral], current_market_price=0.50)
 
         assert result.fair_value == 0.50
@@ -158,16 +166,20 @@ class TestAggregation:
 
     def test_fair_value_bounded(self):
         """Fair value should always be between 0 and 1."""
-        extreme = self._make_signal(prob=0.99, reliability=1.0, match_score=1.0)
+        extreme = self._make_signal(
+            prob=0.99, reliability=1.0, match_score=1.0)
         result = aggregate_signals([extreme], current_market_price=0.01)
 
         assert 0.0 < result.fair_value < 1.0
 
     def test_max_shift_capped(self):
         """Even extreme signals shouldn't shift beyond the log-odds cap."""
-        extreme1 = self._make_signal(prob=0.99, reliability=1.0, match_score=1.0)
-        extreme2 = self._make_signal(prob=0.99, reliability=1.0, match_score=1.0)
-        extreme3 = self._make_signal(prob=0.99, reliability=1.0, match_score=1.0)
+        extreme1 = self._make_signal(
+            prob=0.99, reliability=1.0, match_score=1.0)
+        extreme2 = self._make_signal(
+            prob=0.99, reliability=1.0, match_score=1.0)
+        extreme3 = self._make_signal(
+            prob=0.99, reliability=1.0, match_score=1.0)
 
         result = aggregate_signals(
             [extreme1, extreme2, extreme3],

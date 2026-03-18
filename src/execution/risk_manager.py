@@ -55,7 +55,8 @@ class RiskManager:
 
     def __init__(self) -> None:
         self._total_exposure: float = 0.0
-        self._market_exposure: dict[str, float] = {}  # condition_id → USD exposure
+        # condition_id → USD exposure
+        self._market_exposure: dict[str, float] = {}
         self._peak_portfolio_value: float = 0.0
         self._current_portfolio_value: float = 0.0
         self._drawdown_halt: bool = False
@@ -96,7 +97,8 @@ class RiskManager:
         )
 
         # ── Check 4: Cap by maximum position size ────────────────
-        size = min(kelly_size, proposal.suggested_size_usd, settings.max_position_size_usd)
+        size = min(kelly_size, proposal.suggested_size_usd,
+                   settings.max_position_size_usd)
 
         # ── Check 5: Cap by portfolio exposure limit ─────────────
         remaining_capacity = settings.max_portfolio_exposure_usd - self._total_exposure
@@ -110,8 +112,10 @@ class RiskManager:
         size = min(size, remaining_capacity)
 
         # ── Check 6: Per-market concentration limit ──────────────
-        current_market_exp = self._market_exposure.get(proposal.condition_id, 0.0)
-        max_market_exp = settings.max_portfolio_exposure_usd * settings.max_single_market_pct
+        current_market_exp = self._market_exposure.get(
+            proposal.condition_id, 0.0)
+        max_market_exp = settings.max_portfolio_exposure_usd * \
+            settings.max_single_market_pct
         market_remaining = max_market_exp - current_market_exp
         if market_remaining <= 0:
             return RiskCheck(
@@ -129,7 +133,8 @@ class RiskManager:
                 rejection_reason=f"Position size ${size:.2f} below minimum $1.00",
             )
 
-        utilization = self._total_exposure / max(settings.max_portfolio_exposure_usd, 1)
+        utilization = self._total_exposure / \
+            max(settings.max_portfolio_exposure_usd, 1)
 
         log.info(
             "risk_approved",
@@ -143,7 +148,8 @@ class RiskManager:
         return RiskCheck(
             approved=True,
             adjusted_size_usd=round(size, 2),
-            kelly_fraction=kelly_size / max(settings.max_portfolio_exposure_usd, 1),
+            kelly_fraction=kelly_size /
+            max(settings.max_portfolio_exposure_usd, 1),
             portfolio_utilization=utilization,
         )
 
@@ -201,7 +207,8 @@ class RiskManager:
             self._peak_portfolio_value = total_value
 
         if self._peak_portfolio_value > 0:
-            drawdown = (self._peak_portfolio_value - total_value) / self._peak_portfolio_value
+            drawdown = (self._peak_portfolio_value - total_value) / \
+                self._peak_portfolio_value
             if drawdown >= settings.max_drawdown_pct:
                 self._drawdown_halt = True
                 log.error(
@@ -216,7 +223,8 @@ class RiskManager:
         """Manual reset after drawdown halt. Called via Telegram /reset command."""
         self._drawdown_halt = False
         self._peak_portfolio_value = self._current_portfolio_value
-        log.warning("drawdown_halt_reset", new_peak=f"${self._current_portfolio_value:.2f}")
+        log.warning("drawdown_halt_reset",
+                    new_peak=f"${self._current_portfolio_value:.2f}")
 
     @property
     def is_halted(self) -> bool:

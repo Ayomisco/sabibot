@@ -181,7 +181,8 @@ def aggregate_signals(
 
     # Apply evidence-scaled shift to prior, with cap
     adjusted_shift = avg_shift * evidence_strength
-    adjusted_shift = max(-MAX_SHIFT_LOGODDS, min(MAX_SHIFT_LOGODDS, adjusted_shift))
+    adjusted_shift = max(-MAX_SHIFT_LOGODDS,
+                         min(MAX_SHIFT_LOGODDS, adjusted_shift))
 
     # Convert back to probability
     posterior_logodds = prior_logodds + adjusted_shift

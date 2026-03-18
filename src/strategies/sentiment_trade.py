@@ -54,7 +54,8 @@ class SentimentTradeStrategy(BaseStrategy):
             if agg.signal_count < 1:
                 continue
 
-            market = next((m for m in markets if m.condition_id == condition_id), None)
+            market = next(
+                (m for m in markets if m.condition_id == condition_id), None)
             if market is None:
                 continue
 
@@ -81,7 +82,8 @@ class SentimentTradeStrategy(BaseStrategy):
                 market_price=market_price,
                 edge=agg.edge,
                 confidence=agg.confidence,
-                suggested_size_usd=self._kelly_size(agg.edge, market_price, agg.confidence),
+                suggested_size_usd=self._kelly_size(
+                    agg.edge, market_price, agg.confidence),
                 max_price=max_price,
                 reasoning=(
                     f"Sentiment signal: {agg.signal_count} sources indicate "
@@ -114,5 +116,6 @@ class SentimentTradeStrategy(BaseStrategy):
             return 0.0
 
         # Scale by kelly_multiplier and confidence
-        size = kelly * settings.max_portfolio_exposure_usd * settings.kelly_multiplier * confidence
+        size = kelly * settings.max_portfolio_exposure_usd * \
+            settings.kelly_multiplier * confidence
         return min(size, settings.max_position_size_usd)

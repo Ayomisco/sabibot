@@ -45,7 +45,8 @@ class MomentumStrategy(BaseStrategy):
     def __init__(self) -> None:
         super().__init__(name="momentum")
         # Price history: condition_id -> list of (timestamp, price)
-        self._price_history: dict[str, list[tuple[datetime, float]]] = defaultdict(list)
+        self._price_history: dict[str,
+                                  list[tuple[datetime, float]]] = defaultdict(list)
 
     def record_price(self, condition_id: str, price: float) -> None:
         """Called by the WebSocket handler to record price updates."""
@@ -85,7 +86,8 @@ class MomentumStrategy(BaseStrategy):
                 continue
 
             # Check consistency — is the move mostly in one direction?
-            ups = sum(1 for i in range(1, len(recent)) if recent[i][1] > recent[i-1][1])
+            ups = sum(1 for i in range(1, len(recent))
+                      if recent[i][1] > recent[i-1][1])
             downs = len(recent) - 1 - ups
             consistency = max(ups, downs) / max(1, ups + downs)
 
@@ -95,14 +97,16 @@ class MomentumStrategy(BaseStrategy):
             # Momentum direction
             if price_change > 0:
                 side = "BUY_YES"
-                projected = last_price + (price_change * 0.3)  # Expect 30% continuation
+                # Expect 30% continuation
+                projected = last_price + (price_change * 0.3)
             else:
                 side = "BUY_NO"
                 projected = (1 - last_price) + (abs(price_change) * 0.3)
 
             edge = abs(price_change) * 0.3 * consistency
             market_price = self._get_price(market, side)
-            max_price = market_price + (edge * 0.5)  # Willing to pay up a bit for momentum
+            # Willing to pay up a bit for momentum
+            max_price = market_price + (edge * 0.5)
 
             if edge < 0.02:
                 continue
@@ -117,7 +121,8 @@ class MomentumStrategy(BaseStrategy):
                 market_price=market_price,
                 edge=edge,
                 confidence=consistency * 0.7,
-                suggested_size_usd=min(edge * 150, settings.max_position_size_usd * 0.5),
+                suggested_size_usd=min(
+                    edge * 150, settings.max_position_size_usd * 0.5),
                 max_price=min(max_price, 0.95),
                 reasoning=(
                     f"Momentum: {price_change:+.3f} over {LOOKBACK_MINUTES}min, "

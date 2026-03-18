@@ -105,7 +105,8 @@ def _keyword_overlap_score(
     # Jaccard similarity
     union = news_keywords | market_keywords
     score = len(overlap) / len(union)
-    return min(1.0, score * 2), list(overlap)  # Scale up since Jaccard is naturally low
+    # Scale up since Jaccard is naturally low
+    return min(1.0, score * 2), list(overlap)
 
 
 async def match_news_to_markets(
@@ -158,17 +159,20 @@ async def match_news_to_markets(
         market_kw = _extract_keywords(market_text)
 
         # Layer 1: Entity overlap
-        ent_score, matched_ents = _entity_overlap_score(news_entities, market_text)
+        ent_score, matched_ents = _entity_overlap_score(
+            news_entities, market_text)
 
         # Layer 2: Keyword overlap
-        kw_score, matched_kws = _keyword_overlap_score(news_keywords, market_kw)
+        kw_score, matched_kws = _keyword_overlap_score(
+            news_keywords, market_kw)
 
         # Layer 3: Semantic similarity
         sem_score = cosine_similarity(news_embedding, market_embeddings[i])
         sem_score = max(0.0, sem_score)  # Clamp negative similarities
 
         # Composite score
-        composite = (W_ENTITY * ent_score) + (W_KEYWORD * kw_score) + (W_SEMANTIC * sem_score)
+        composite = (W_ENTITY * ent_score) + (W_KEYWORD *
+                                              kw_score) + (W_SEMANTIC * sem_score)
 
         if composite >= MATCH_THRESHOLD:
             results.append(MatchResult(

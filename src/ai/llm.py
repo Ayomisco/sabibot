@@ -42,7 +42,8 @@ class LLMResponse:
 class LLMGateway:
     """Unified interface to all LLM providers."""
 
-    _http: httpx.AsyncClient = field(default_factory=lambda: httpx.AsyncClient(timeout=60.0))
+    _http: httpx.AsyncClient = field(
+        default_factory=lambda: httpx.AsyncClient(timeout=60.0))
 
     # ── Provider dispatch ────────────────────────────────────────
 
@@ -59,7 +60,8 @@ class LLMGateway:
         try:
             return await self._dispatch(provider, prompt, system, temperature, max_tokens)
         except Exception as exc:
-            log.warning("llm_primary_failed", provider=provider.value, error=str(exc))
+            log.warning("llm_primary_failed",
+                        provider=provider.value, error=str(exc))
             fallback = self._resolve_fallback(provider)
             if fallback == LLMProvider.NONE:
                 raise

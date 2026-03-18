@@ -87,7 +87,8 @@ class MarketMakingStrategy(BaseStrategy):
                     market_price=yes_price,
                     edge=our_spread,
                     confidence=0.5,  # Market making = moderate confidence
-                    suggested_size_usd=min(20.0, settings.max_position_size_usd * 0.3),
+                    suggested_size_usd=min(
+                        20.0, settings.max_position_size_usd * 0.3),
                     max_price=bid_price,
                     reasoning=f"Market making: spread {spread:.1%}, placing bid at {bid_price:.3f}",
                     urgency=0.3,  # Not urgent — passive strategy

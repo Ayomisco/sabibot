@@ -18,7 +18,8 @@ def get_scheduler() -> AsyncIOScheduler:
     global _scheduler
     if _scheduler is None:
         _scheduler = AsyncIOScheduler(
-            job_defaults={"coalesce": True, "max_instances": 1, "misfire_grace_time": 30},
+            job_defaults={"coalesce": True,
+                          "max_instances": 1, "misfire_grace_time": 30},
         )
     return _scheduler
 
@@ -32,7 +33,8 @@ def add_interval_job(
     """Register a repeating job."""
     scheduler = get_scheduler()
     jid = job_id or func.__name__
-    scheduler.add_job(func, "interval", seconds=seconds, id=jid, replace_existing=True, **kwargs)
+    scheduler.add_job(func, "interval", seconds=seconds,
+                      id=jid, replace_existing=True, **kwargs)
     log.info("scheduled_job", job_id=jid, interval_s=seconds)
 
 

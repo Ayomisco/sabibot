@@ -82,7 +82,8 @@ async def news_scan_cycle() -> None:
         # 3. Analyze each news item
         all_proposals: list[TradeProposal] = []
 
-        for news_item in new_items[:5]:  # Cap at 5 items per cycle to limit LLM calls
+        # Cap at 5 items per cycle to limit LLM calls
+        for news_item in new_items[:5]:
             opportunities = await analyze_news_item(
                 headline=news_item.title,
                 body=news_item.summary,
@@ -108,14 +109,18 @@ async def news_scan_cycle() -> None:
                 proposals = await strategy.evaluate(_markets_cache, _signals_cache)
                 all_proposals.extend(proposals)
             except Exception as exc:
-                log.error("strategy_error", strategy=strategy.name, error=str(exc))
+                log.error("strategy_error",
+                          strategy=strategy.name, error=str(exc))
 
         # 6. Execute approved proposals
         if all_proposals:
             # Sort by edge * confidence (best opportunities first)
-            all_proposals.sort(key=lambda p: abs(p.edge) * p.confidence, reverse=True)
-            trades = await order_manager.execute_proposals(all_proposals[:3])  # Max 3 trades per cycle
-            log.info("cycle_complete", proposals=len(all_proposals), executed=len(trades))
+            all_proposals.sort(key=lambda p: abs(p.edge) *
+                               p.confidence, reverse=True)
+            # Max 3 trades per cycle
+            trades = await order_manager.execute_proposals(all_proposals[:3])
+            log.info("cycle_complete", proposals=len(
+                all_proposals), executed=len(trades))
 
     except Exception as exc:
         log.error("news_scan_cycle_error", error=str(exc))
@@ -177,9 +182,12 @@ async def run() -> None:
     await _refresh_markets()
 
     # Schedule periodic tasks
-    sched.add_interval_job(news_scan_cycle, settings.news_scan_interval_seconds, job_id="news_scan")
-    sched.add_interval_job(market_refresh_cycle, settings.market_analysis_interval_seconds, job_id="market_refresh")
-    sched.add_interval_job(portfolio_cycle, settings.portfolio_rebalance_interval_seconds, job_id="portfolio")
+    sched.add_interval_job(
+        news_scan_cycle, settings.news_scan_interval_seconds, job_id="news_scan")
+    sched.add_interval_job(
+        market_refresh_cycle, settings.market_analysis_interval_seconds, job_id="market_refresh")
+    sched.add_interval_job(
+        portfolio_cycle, settings.portfolio_rebalance_interval_seconds, job_id="portfolio")
     sched.start()
 
     await send_telegram(

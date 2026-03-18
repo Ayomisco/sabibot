@@ -85,7 +85,8 @@ class TestKellySizing:
             # kelly = (1.0*0.60 - 0.40)/1.0 = 0.20
             # fraction = 0.20 * 0.25(kelly_mult) * 0.7(confidence) = 0.035
             # size = 0.035 * 500 = 17.50
-            size = rm._kelly_position_size(edge=0.10, price=0.50, confidence=0.70)
+            size = rm._kelly_position_size(
+                edge=0.10, price=0.50, confidence=0.70)
             assert size > 0
             assert size <= 50.0
 
@@ -93,22 +94,26 @@ class TestKellySizing:
         s = _patch_settings()
         with patch("src.execution.risk_manager.settings", s):
             rm = RiskManager()
-            size = rm._kelly_position_size(edge=-0.10, price=0.50, confidence=0.70)
+            size = rm._kelly_position_size(
+                edge=-0.10, price=0.50, confidence=0.70)
             assert size == 0.0
 
     def test_zero_confidence_returns_zero(self):
         s = _patch_settings()
         with patch("src.execution.risk_manager.settings", s):
             rm = RiskManager()
-            size = rm._kelly_position_size(edge=0.10, price=0.50, confidence=0.0)
+            size = rm._kelly_position_size(
+                edge=0.10, price=0.50, confidence=0.0)
             assert size == 0.0
 
     def test_kelly_capped_at_max(self):
-        s = _patch_settings(max_position_size_usd=10.0, max_portfolio_exposure_usd=10000.0)
+        s = _patch_settings(max_position_size_usd=10.0,
+                            max_portfolio_exposure_usd=10000.0)
         with patch("src.execution.risk_manager.settings", s):
             rm = RiskManager()
             # Huge edge → large kelly, but check_proposal caps the final size
-            proposal = _make_proposal(edge=0.30, fair_value=0.80, confidence=0.95)
+            proposal = _make_proposal(
+                edge=0.30, fair_value=0.80, confidence=0.95)
             result = rm.check_proposal(proposal)
             if result.approved:
                 assert result.adjusted_size_usd <= 10.0
@@ -181,10 +186,12 @@ class TestCheckProposal:
             proposal = _make_proposal()
             result = rm.check_proposal(proposal)
             assert not result.approved
-            assert "exposure" in result.rejection_reason.lower() or "limit" in result.rejection_reason.lower()
+            assert "exposure" in result.rejection_reason.lower(
+            ) or "limit" in result.rejection_reason.lower()
 
     def test_market_concentration_exceeded(self):
-        s = _patch_settings(max_single_market_pct=0.05, max_portfolio_exposure_usd=1000.0)
+        s = _patch_settings(max_single_market_pct=0.05,
+                            max_portfolio_exposure_usd=1000.0)
         with patch("src.execution.risk_manager.settings", s):
             rm = RiskManager()
             # Already have $50 in this market (== 5% of 1000)
@@ -192,7 +199,8 @@ class TestCheckProposal:
             proposal = _make_proposal(condition_id="cond_abc")
             result = rm.check_proposal(proposal)
             assert not result.approved
-            assert "concentration" in result.rejection_reason.lower() or "market" in result.rejection_reason.lower()
+            assert "concentration" in result.rejection_reason.lower(
+            ) or "market" in result.rejection_reason.lower()
 
     def test_good_proposal_approved(self):
         s = _patch_settings()

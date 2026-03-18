@@ -5,14 +5,13 @@ Use this to validate the bot logic before going live.
 Identical to `make paper` but with extra verbosity.
 """
 
+from src.main import run
 import asyncio
 import os
 
 # Force paper mode
 os.environ["TRADING_MODE"] = "paper"
 os.environ["LOG_LEVEL"] = "DEBUG"
-
-from src.main import run
 
 
 if __name__ == "__main__":

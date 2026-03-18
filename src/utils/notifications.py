@@ -49,7 +49,8 @@ async def send_telegram(message: str, level: AlertLevel = AlertLevel.INFO) -> No
     try:
         resp = await _client().post(url, json=payload)
         if resp.status_code != 200:
-            log.warning("telegram_send_failed", status=resp.status_code, body=resp.text[:200])
+            log.warning("telegram_send_failed",
+                        status=resp.status_code, body=resp.text[:200])
     except Exception as exc:
         log.warning("telegram_send_error", error=str(exc))
 

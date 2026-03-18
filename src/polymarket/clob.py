@@ -54,7 +54,8 @@ class CLOBClient:
         Must be called once at startup.
         """
         if not settings.polygon_private_key:
-            log.warning("clob_no_private_key", msg="CLOB client requires POLYGON_PRIVATE_KEY")
+            log.warning("clob_no_private_key",
+                        msg="CLOB client requires POLYGON_PRIVATE_KEY")
             return
 
         self._client = ClobClient(
@@ -72,13 +73,15 @@ class CLOBClient:
             "clob_initialized",
             chain_id=settings.chain_id,
             signature_type=SIGNATURE_TYPE_EOA,
-            address=settings.polygon_wallet_address[:10] + "..." if settings.polygon_wallet_address else "derived",
+            address=settings.polygon_wallet_address[:10] +
+            "..." if settings.polygon_wallet_address else "derived",
         )
 
     @property
     def client(self) -> ClobClient:
         if self._client is None:
-            raise RuntimeError("CLOBClient not initialized. Call initialize() first.")
+            raise RuntimeError(
+                "CLOBClient not initialized. Call initialize() first.")
         return self._client
 
     # ── Order Operations ─────────────────────────────────────────
@@ -111,7 +114,13 @@ class CLOBClient:
             )
 
             signed_order = self.client.create_and_sign_order(order_args)
-            resp = self.client.post_order(signed_order, order_type=OrderType.GTC)
+
+            # Attach builder fee if configured — earns revenue on every trade
+            order_kwargs: dict[str, Any] = {"order_type": OrderType.GTC}
+            if settings.builder_wallet_address:
+                order_kwargs["fee_rate_bps"] = 100  # 1% builder fee
+
+            resp = self.client.post_order(signed_order, **order_kwargs)
 
             order_id = resp.get("orderID", "")
             log.info(
@@ -125,7 +134,8 @@ class CLOBClient:
             return OrderResult(success=True, order_id=order_id, raw=resp)
 
         except Exception as exc:
-            log.error("order_failed", error=str(exc), side=side, price=price, size=size)
+            log.error("order_failed", error=str(exc),
+                      side=side, price=price, size=size)
             return OrderResult(success=False, error=str(exc))
 
     async def cancel_order(self, order_id: str) -> bool:

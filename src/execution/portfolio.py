@@ -56,7 +56,8 @@ class PortfolioTracker:
         async with async_session() as session:
             result = await session.execute(
                 select(Trade).where(
-                    Trade.status.in_([TradeStatus.FILLED, TradeStatus.PENDING]),
+                    Trade.status.in_(
+                        [TradeStatus.FILLED, TradeStatus.PENDING]),
                     Trade.exit_at.is_(None),
                 )
             )
@@ -111,7 +112,8 @@ class PortfolioTracker:
         # Realized P&L from closed trades
         async with async_session() as session:
             # Today's realized P&L
-            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            today_start = datetime.now(timezone.utc).replace(
+                hour=0, minute=0, second=0, microsecond=0)
             result = await session.execute(
                 select(func.sum(Trade.pnl)).where(
                     Trade.pnl.isnot(None),
@@ -133,7 +135,8 @@ class PortfolioTracker:
             closed_trades = result.scalar() or 0
 
             result = await session.execute(
-                select(func.count(Trade.id)).where(Trade.pnl.isnot(None), Trade.pnl > 0)
+                select(func.count(Trade.id)).where(
+                    Trade.pnl.isnot(None), Trade.pnl > 0)
             )
             winning_trades = result.scalar() or 0
 

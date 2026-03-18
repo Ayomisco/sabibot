@@ -3,7 +3,8 @@ import httpx
 import json
 
 # Test 1: With active filter
-resp = httpx.get('https://gamma-api.polymarket.com/markets', params={'limit': 5, 'active': 'true', 'closed': 'false'})
+resp = httpx.get('https://gamma-api.polymarket.com/markets',
+                 params={'limit': 5, 'active': 'true', 'closed': 'false'})
 print(f'Status: {resp.status_code}')
 data = resp.json()
 print(f'With active=true, closed=false: {len(data)} markets')
@@ -17,7 +18,8 @@ if data:
 
 # Test 2: Without filters
 print("\n--- Without filters ---")
-resp2 = httpx.get('https://gamma-api.polymarket.com/markets', params={'limit': 5})
+resp2 = httpx.get('https://gamma-api.polymarket.com/markets',
+                  params={'limit': 5})
 data2 = resp2.json()
 print(f'No filter: {len(data2)} markets')
 if data2:

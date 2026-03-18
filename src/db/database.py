@@ -17,7 +17,8 @@ _engine = create_async_engine(
     future=True,
 )
 
-async_session = sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+async_session = sessionmaker(
+    _engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def init_db() -> None:

@@ -99,7 +99,8 @@ async def explain_trade(
     evidence_summary: str,
 ) -> TradeExplanation:
     """Generate human-readable trade explanation. FREE tier."""
-    prompt = build_trade_explanation_prompt(market_question, side, edge, evidence_summary)
+    prompt = build_trade_explanation_prompt(
+        market_question, side, edge, evidence_summary)
     data = await llm.complete_json(
         prompt,
         system="You are a trading analyst explaining a prediction market position.",

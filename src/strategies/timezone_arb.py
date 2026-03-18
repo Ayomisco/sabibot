@@ -68,7 +68,8 @@ class TimezoneArbStrategy(BaseStrategy):
                 continue
 
             # Find the market
-            market = next((m for m in markets if m.condition_id == condition_id), None)
+            market = next(
+                (m for m in markets if m.condition_id == condition_id), None)
             if market is None:
                 continue
 
@@ -93,14 +94,16 @@ class TimezoneArbStrategy(BaseStrategy):
                 market_price=market_price,
                 edge=agg_signal.edge,
                 confidence=agg_signal.confidence,
-                suggested_size_usd=self._size_from_edge(agg_signal.edge, agg_signal.confidence),
+                suggested_size_usd=self._size_from_edge(
+                    agg_signal.edge, agg_signal.confidence),
                 max_price=max_price,
                 reasoning=(
                     f"Timezone arb: US markets sleeping, edge of {agg_signal.edge:+.1%} "
                     f"detected from {agg_signal.signal_count} signals"
                 ),
                 urgency=urgency,
-                metadata={"strategy_type": "timezone_arb", "signal_count": agg_signal.signal_count},
+                metadata={"strategy_type": "timezone_arb",
+                          "signal_count": agg_signal.signal_count},
             ))
 
             log.info(

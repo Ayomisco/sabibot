@@ -6,7 +6,8 @@ def build_probability_prompt(
     current_price: float,
     evidence: list[str],
 ) -> str:
-    evidence_block = "\n".join(f"- {e}" for e in evidence) if evidence else "- No specific evidence provided"
+    evidence_block = "\n".join(
+        f"- {e}" for e in evidence) if evidence else "- No specific evidence provided"
 
     return f"""You are estimating the fair probability for a prediction market.
 

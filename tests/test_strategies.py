@@ -173,4 +173,5 @@ class TestTradeProposal:
             max_price=0.65,
             reasoning="Test",
         )
-        assert abs(proposal.edge - (proposal.fair_value - proposal.market_price)) < 0.01
+        assert abs(proposal.edge - (proposal.fair_value -
+                   proposal.market_price)) < 0.01
