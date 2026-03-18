@@ -183,7 +183,7 @@ async def run() -> None:
     sched.start()
 
     await send_telegram(
-        f"Bot started in *{settings.trading_mode.value}* mode\n"
+        f"Bot started in {settings.trading_mode.value} mode\n"
         f"LLM: {settings.llm_primary_provider.value}\n"
         f"Markets loaded: {len(_markets_cache)}",
         AlertLevel.INFO,

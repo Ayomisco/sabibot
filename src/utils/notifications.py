@@ -38,12 +38,11 @@ async def send_telegram(message: str, level: AlertLevel = AlertLevel.INFO) -> No
         log.debug("telegram_not_configured")
         return
 
-    text = f"{level.value} *SabiBot*\n{message}"
+    text = f"{level.value} SabiBot\n{message}"
     url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
     payload = {
         "chat_id": settings.telegram_chat_id,
         "text": text,
-        "parse_mode": "Markdown",
         "disable_web_page_preview": True,
     }
 
