@@ -65,20 +65,22 @@ def send_telegram_sync(message: str, level: AlertLevel = AlertLevel.INFO) -> Non
 
 
 async def notify_trade(
-    action: str, market: str, side: str, amount: float, price: float, edge: float
+    action: str, market: str, side: str, amount: float, price: float, edge: float,
+    condition_id: str = "",
 ) -> None:
     msg = (
-        f"*{action}*\n"
+        f"{action}\n"
         f"Market: {market[:80]}\n"
         f"Side: {side} @ ${price:.3f}\n"
         f"Size: ${amount:.2f}\n"
-        f"Edge: {edge:+.1%}"
+        f"Edge: {edge:+.1%}\n"
+        f"View: https://polymarket.com/"
     )
     await send_telegram(msg, AlertLevel.TRADE)
 
 
 async def notify_error(context: str, error: str) -> None:
-    msg = f"*Error in {context}*\n`{error[:300]}`"
+    msg = f"Error in {context}\n{error[:300]}"
     await send_telegram(msg, AlertLevel.ERROR)
 
 
@@ -87,7 +89,7 @@ async def notify_daily_summary(
 ) -> None:
     level = AlertLevel.PROFIT if pnl >= 0 else AlertLevel.LOSS
     msg = (
-        f"*Daily Summary*\n"
+        f"Daily Summary\n"
         f"P&L: ${pnl:+.2f}\n"
         f"Win Rate: {win_rate:.0%}\n"
         f"Trades: {trades}\n"

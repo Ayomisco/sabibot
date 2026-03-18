@@ -82,12 +82,13 @@ class OrderManager:
 
                 # Notify via Telegram
                 await notify_trade(
-                    action="LIVE ORDER" if settings.is_live else "PAPER TRADE",
+                    action="LIVE TRADE" if settings.is_live else "PAPER TRADE",
                     market=proposal.market.question,
                     side=proposal.side,
                     amount=final_size,
                     price=proposal.market_price,
                     edge=proposal.edge,
+                    condition_id=proposal.condition_id,
                 )
 
         return executed_trades

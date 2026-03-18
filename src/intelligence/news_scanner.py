@@ -9,18 +9,32 @@ The scanner runs on a timer (default: every 60s) and:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
 
+from src.config import settings
 from src.db.database import async_session
 from src.db.models import NewsItem
 from src.intelligence.sources.rss import RSSItem, fetch_rss_feeds
-from src.intelligence.sources.newsapi import GNewsItem, get_top_headlines
+from src.intelligence.sources.newsapi import GNewsItem, get_top_headlines, search_gnews
 from src.utils.logger import get_logger
 
 log = get_logger("news_scanner")
+
+# GNews rate limiter — 100 req/day budget → 1 call per 15 min, rotating topics
+_last_gnews_call: datetime | None = None
+_gnews_cycle: int = 0
+_GNEWS_INTERVAL = timedelta(minutes=15)
+_GNEWS_ROTATION = [
+    ("headlines", "general"),
+    ("search", "crypto bitcoin ethereum"),
+    ("search", "weather climate hurricane"),
+    ("search", "sports NBA NFL championship"),
+    ("headlines", "business"),
+    ("search", "politics election government"),
+]
 
 
 async def scan_all_sources() -> list[NewsItem]:
@@ -42,10 +56,24 @@ async def scan_all_sources() -> list[NewsItem]:
     for item in rss_items:
         raw_items.append(_rss_to_dict(item))
 
-    # GNews — only if configured
-    gnews_items = await get_top_headlines(category="general", max_results=10)
-    for item in gnews_items:
-        raw_items.append(_gnews_to_dict(item))
+    # GNews — rate limited to stay under 100 req/day (every 15min, rotating topics)
+    global _last_gnews_call, _gnews_cycle
+    now = datetime.now(timezone.utc)
+    if settings.gnews_api_key and (
+        _last_gnews_call is None or now - _last_gnews_call >= _GNEWS_INTERVAL
+    ):
+        try:
+            mode, query = _GNEWS_ROTATION[_gnews_cycle % len(_GNEWS_ROTATION)]
+            if mode == "headlines":
+                gnews_items = await get_top_headlines(category=query, max_results=10)
+            else:
+                gnews_items = await search_gnews(query, max_results=10)
+            for item in gnews_items:
+                raw_items.append(_gnews_to_dict(item))
+            _gnews_cycle += 1
+            _last_gnews_call = now
+        except Exception as exc:
+            log.warning("gnews_rate_limited_error", error=str(exc))
 
     if not raw_items:
         log.debug("no_news_items_fetched")

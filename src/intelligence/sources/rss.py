@@ -47,12 +47,20 @@ RSS_FEEDS: list[tuple[str, str, str]] = [
     # Finance / Crypto
     ("coindesk", "https://www.coindesk.com/arc/outboundfeeds/rss/", "crypto"),
     ("cointelegraph", "https://cointelegraph.com/rss", "crypto"),
+    ("decrypt", "https://decrypt.co/feed", "crypto"),
+
+    # Finance / Economics
+    ("cnbc_top", "https://www.cnbc.com/id/100003114/device/rss/rss.html", "finance"),
 
     # Science / Tech
     ("arstechnica", "https://feeds.arstechnica.com/arstechnica/index", "tech"),
 
     # Sports
     ("espn", "https://www.espn.com/espn/rss/news", "sports"),
+    ("bbc_sport", "https://feeds.bbci.co.uk/sport/rss.xml", "sports"),
+
+    # Entertainment / Pop Culture
+    ("variety", "https://variety.com/feed/", "entertainment"),
 ]
 
 

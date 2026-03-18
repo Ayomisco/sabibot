@@ -178,49 +178,56 @@ async def cmd_guide(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 @_authorized
 async def cmd_how(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     mode = settings.trading_mode.value.upper()
-    wallet = settings.polygon_wallet_address or "Not configured"
 
     msg = (
-        "How To Fund & Start Earning\n"
+        "How SabiBot Makes You Money\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
 
-        f"Current mode: {mode}\n"
-        f"Wallet: {wallet[:10]}...{wallet[-6:]}\n\n"
-    )
+        "WHAT IS THIS?\n"
+        "SabiBot trades on Polymarket — the world's largest\n"
+        "prediction market. It uses AI to find mispriced\n"
+        "predictions and bets on them automatically.\n\n"
 
-    if settings.is_paper:
-        msg += (
-            "PAPER MODE (Current)\n"
-            "You're in paper trading mode. No real money is used.\n"
-            "The bot simulates trades to test strategies.\n\n"
-            "WHEN READY FOR REAL MONEY:\n"
-        )
+        "EXAMPLE:\n"
+        "News breaks: 'Country X announces election results'\n"
+        "Bot sees market priced at 30% but AI estimates 70%\n"
+        "Bot buys YES at $0.30\n"
+        "Market corrects to $0.70 -> You profit $0.40/share!\n\n"
 
-    msg += (
-        "Step 1: Get USDC on Polygon\n"
-        "- Buy USDC on Coinbase, Binance, or any exchange\n"
-        "- Send USDC to your wallet on Polygon network\n"
-        f"- Your wallet: {wallet}\n\n"
-
-        "Step 2: Approve USDC for Polymarket\n"
-        "- Go to polymarket.com and connect your wallet\n"
-        "- Deposit USDC (this approves the contracts)\n\n"
-
-        "Step 3: Switch to LIVE mode\n"
-        "- Set TRADING_MODE=live in Railway env vars\n"
-        "- Redeploy the bot\n\n"
+        "SETUP (5 minutes):\n"
+        "1. Install MetaMask wallet (metamask.io)\n"
+        "2. Buy USDC on Coinbase, Binance, or any exchange\n"
+        "3. Send USDC to MetaMask (use Polygon network!)\n"
+        "4. Go to polymarket.com -> Connect wallet -> Deposit\n"
+        "5. The bot handles everything from here!\n\n"
 
         "HOW YOU EARN:\n"
-        "1. Trading Profits - Bot buys low, sells high\n"
-        "   on prediction markets\n"
-        "2. Builder Fees - You earn a fee on every trade\n"
-        "   placed through the bot (Polymarket builder program)\n\n"
+        "1. Trading Profits - AI finds mispriced predictions\n"
+        "   Buys low, market corrects, you keep the profit\n"
+        "2. Builder Fees - Polymarket pays the bot a fee\n"
+        "   on every single trade it places\n\n"
+
+        "WHAT IT TRADES:\n"
+        "- Politics (elections, policy decisions)\n"
+        "- Crypto (Bitcoin price, ETH events)\n"
+        "- Sports (NBA, NFL, soccer outcomes)\n"
+        "- Weather (hurricane paths, temperature records)\n"
+        "- Entertainment (award shows, pop culture)\n"
+        "- Economics (Fed rates, GDP, jobs data)\n\n"
+
+        "SAFETY RULES (built-in):\n"
+        "- Max $10 per trade (adjustable)\n"
+        "- Max $100 total exposure\n"
+        "- Auto-stop if losses exceed 25%\n"
+        "- AI must be 55%+ confident to trade\n\n"
 
         "RECOMMENDED START:\n"
-        "- Start with $50-100 USDC\n"
-        "- Let it paper trade for 48 hours first\n"
-        "- Check /status daily\n"
-        "- Scale up only after consistent profits"
+        "- Start with $10-50 USDC\n"
+        "- Never risk money you can't afford to lose\n"
+        "- Check /status daily to monitor progress\n\n"
+
+        f"Current mode: {mode}\n"
+        "Browse markets: https://polymarket.com/"
     )
     await update.message.reply_text(msg)
 
@@ -315,7 +322,8 @@ async def cmd_markets(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         lines.append(
             f"\n{i}. {m.question[:55]}\n   YES: ${yes:.3f} | NO: ${1-yes:.3f}")
 
-    lines.append(f"\n\nTotal markets loaded: {len(_markets_cache)}")
+    lines.append(f"\n\nTotal: {len(_markets_cache)} markets")
+    lines.append("Browse: https://polymarket.com/")
     await update.message.reply_text("\n".join(lines))
 
 
@@ -468,19 +476,21 @@ async def _send_guide(query) -> None:
 
 
 async def _send_how(query) -> None:
-    wallet = settings.polygon_wallet_address or "Not set"
-    short = f"{wallet[:10]}...{wallet[-6:]}" if len(wallet) > 16 else wallet
     msg = (
-        "How To Start Earning\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"Mode: {settings.trading_mode.value.upper()}\n"
-        f"Wallet: {short}\n\n"
-        "1. Buy USDC on any exchange\n"
-        "2. Send USDC to wallet (Polygon network)\n"
-        "3. Connect wallet on polymarket.com\n"
-        "4. Set TRADING_MODE=live\n"
-        "5. Bot trades automatically!\n\n"
-        "Start with $50-100. Scale after profits."
+        "How SabiBot Earns Money\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "1. AI scans news 24/7\n"
+        "2. Finds mispriced predictions on Polymarket\n"
+        "3. Buys low (e.g. YES at $0.30)\n"
+        "4. Market corrects -> You profit!\n\n"
+        "SETUP:\n"
+        "1. Get MetaMask wallet\n"
+        "2. Buy USDC on any exchange\n"
+        "3. Send USDC to wallet (Polygon network)\n"
+        "4. Deposit on polymarket.com\n"
+        "5. Bot trades automatically 24/7!\n\n"
+        "Start with $10-50. Never risk what you can't lose.\n"
+        "https://polymarket.com/"
     )
     keyboard = [[InlineKeyboardButton("Back to Menu", callback_data="back")]]
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -526,7 +536,8 @@ async def _send_markets(query) -> None:
             yes = m.outcome_prices.get("Yes", 0.5)
             lines.append(
                 f"{i}. {m.question[:45]}\n   YES ${yes:.2f} | NO ${1-yes:.2f}")
-        lines.append(f"\n{len(_markets_cache)} total markets")
+        lines.append(f"\n{len(_markets_cache)} markets")
+        lines.append("https://polymarket.com/")
         msg = "\n".join(lines)
 
     keyboard = [
