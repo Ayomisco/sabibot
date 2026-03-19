@@ -192,7 +192,7 @@ async def run() -> None:
     # Fetch initial market data
     await _refresh_markets()
 
-    # ── Balance check: warn if on-chain USDC is zero ─────────────
+    # ── Balance check: log USDC in both EOA and proxy wallet ─────
     if settings.is_live:
         try:
             from web3 import Web3
@@ -202,22 +202,20 @@ async def run() -> None:
             w3 = Web3(Web3.HTTPProvider(settings.polygon_rpc_url))
             w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
             usdc = w3.eth.contract(address=Web3.to_checksum_address(USDC_CONTRACT), abi=USDC_ABI)
-            raw_balance = usdc.functions.balanceOf(Web3.to_checksum_address(settings.polygon_wallet_address)).call()
+
+            # Check whichever address holds funds
+            check_addr = settings.clob_funder_address or settings.polygon_wallet_address
+            raw_balance = usdc.functions.balanceOf(Web3.to_checksum_address(check_addr)).call()
             usdc_balance = raw_balance / 1_000_000  # 6 decimals
-            if usdc_balance < 1.0:
-                warn_msg = (
-                    f"⚠️ LIVE MODE but on-chain USDC balance is ${usdc_balance:.2f}!\n\n"
-                    f"Your $11 is likely in Polymarket's Classic (custodial) balance.\n"
-                    f"The bot trades using on-chain USDC in wallet:\n"
-                    f"{settings.polygon_wallet_address}\n\n"
-                    f"To fix: Go to polymarket.com → Portfolio → Withdraw → "
-                    f"choose 'Crypto' → send USDC to your wallet address above.\n"
-                    f"OR deposit USDC directly to that wallet address via Polygon."
-                )
-                log.warning("live_mode_zero_usdc", balance=usdc_balance)
-                await send_telegram(warn_msg, AlertLevel.WARNING)
-            else:
-                log.info("usdc_balance_ok", usdc=f"${usdc_balance:.2f}")
+
+            log.info("usdc_balance", wallet=check_addr[:10] + "...", usdc=f"${usdc_balance:.2f}")
+            await send_telegram(
+                f"Started in LIVE mode\n"
+                f"Funder wallet: {check_addr[:10]}...\n"
+                f"On-chain USDC: ${usdc_balance:.2f}\n"
+                f"Markets loaded: {len(_markets_cache)}",
+                AlertLevel.INFO,
+            )
         except Exception as exc:
             log.warning("balance_check_failed", error=str(exc))
 

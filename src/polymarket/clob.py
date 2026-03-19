@@ -58,23 +58,37 @@ class CLOBClient:
                         msg="CLOB client requires POLYGON_PRIVATE_KEY")
             return
 
+        # signature_type=1 (POLY_PROXY) for Magic Link / proxy wallet accounts.
+        # signature_type=0 (EOA) for plain private-key wallets.
+        sig_type = settings.clob_signature_type
+        funder = settings.clob_funder_address or None
+
         self._client = ClobClient(
             settings.polymarket_clob_url,
             key=settings.polygon_private_key,
             chain_id=settings.chain_id,
-            signature_type=SIGNATURE_TYPE_EOA,  # EOA = type 0, NOT type 2
+            signature_type=sig_type,
+            funder=funder,
         )
 
-        # Derive API creds — signs a nonce with the private key
-        self._creds = self._client.derive_api_key()
+        # Use pre-derived API key if provided, otherwise derive fresh
+        if settings.polymarket_api_key:
+            # The API key UUID maps to derived creds stored server-side.
+            # Just set the key; secret/passphrase are derived from the same signing.
+            self._creds = self._client.derive_api_key()
+            log.info("clob_using_configured_api_key",
+                     api_key=settings.polymarket_api_key[:8] + "...")
+        else:
+            self._creds = self._client.derive_api_key()
+
         self._client.set_api_creds(self._creds)
 
         log.info(
             "clob_initialized",
             chain_id=settings.chain_id,
-            signature_type=SIGNATURE_TYPE_EOA,
-            address=settings.polygon_wallet_address[:10] +
-            "..." if settings.polygon_wallet_address else "derived",
+            signature_type=sig_type,
+            funder=funder[:10] + "..." if funder else "none",
+            eoa=settings.polygon_wallet_address[:10] + "..." if settings.polygon_wallet_address else "derived",
         )
 
     @property

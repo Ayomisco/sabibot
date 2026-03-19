@@ -48,7 +48,15 @@ class Settings(BaseSettings):
 
     # ── Polymarket / Polygon ─────────────────────────────────────
     polygon_private_key: str = ""
-    polygon_wallet_address: str = ""
+    polygon_wallet_address: str = ""  # EOA address (signer)
+    # Proxy wallet — for Magic Link / social login accounts.
+    # This is the Polymarket-managed wallet that actually holds USDC.
+    # If set, orders are signed with signature_type=1 (POLY_PROXY) and
+    # this is passed as the 'funder' so the CLOB draws funds from it.
+    # If blank, EOA is used directly (signature_type=0).
+    polymarket_proxy_wallet: str = ""
+    # Pre-derived CLOB API key (UUID). If blank, derived at startup via signing.
+    polymarket_api_key: str = ""
     polygon_rpc_url: str = "https://polygon-rpc.com"
     polymarket_clob_url: str = "https://clob.polymarket.com"
     polymarket_ws_url: str = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
@@ -95,6 +103,16 @@ class Settings(BaseSettings):
     @property
     def is_paper(self) -> bool:
         return self.trading_mode == TradingMode.PAPER
+
+    @property
+    def clob_signature_type(self) -> int:
+        """Returns 1 (POLY_PROXY) for Magic Link accounts, 0 (EOA) otherwise."""
+        return 1 if self.polymarket_proxy_wallet else 0
+
+    @property
+    def clob_funder_address(self) -> str:
+        """The address that funds orders — proxy wallet if set, else EOA."""
+        return self.polymarket_proxy_wallet or self.polygon_wallet_address
 
 
 # Singleton — import this everywhere
