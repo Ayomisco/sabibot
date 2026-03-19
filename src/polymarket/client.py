@@ -86,20 +86,30 @@ class PolymarketClient:
         all_markets: list[Market] = []
         cursor: str | None = None
         empty_streak = 0
+        page = 0
 
         while len(all_markets) < max_markets:
-            batch, cursor = await self.get_markets(limit=100, next_cursor=cursor)
-            if not batch:
-                empty_streak += 1
-                if empty_streak >= 3 or not cursor:
-                    break  # Stop on repeated empty pages or no cursor (was: infinite loop)
-                continue
-            empty_streak = 0
-            all_markets.extend(batch)
-            if not cursor:
+            try:
+                batch, cursor = await self.get_markets(limit=100, next_cursor=cursor)
+                page += 1
+                log.debug("market_page_fetched", page=page, batch_size=len(batch), cursor=str(cursor)[:20] if cursor else None)
+                
+                if not batch:
+                    empty_streak += 1
+                    if empty_streak >= 3 or not cursor:
+                        log.warning("market_pagination_stopped", empty_streak=empty_streak, has_cursor=bool(cursor), total=len(all_markets))
+                        break
+                    continue
+                    
+                empty_streak = 0
+                all_markets.extend(batch)
+                if not cursor:
+                    break
+            except Exception as exc:
+                log.error("market_page_error", page=page, error=str(exc), total_so_far=len(all_markets))
                 break
 
-        log.info("fetched_markets", count=len(all_markets))
+        log.info("fetched_markets", count=len(all_markets), pages=page)
         return all_markets[:max_markets]
 
     @with_retry(max_attempts=2, min_wait=1.0, retry_on=(httpx.HTTPError,))

@@ -59,20 +59,36 @@ _signals_cache: dict = {}
 
 
 async def _refresh_markets() -> None:
-    """Fetch active markets and update cache."""
+    """Fetch active markets and update cache. Retries up to 3x with backoff."""
     global _markets_cache
-    try:
-        markets = await asyncio.wait_for(
-            polymarket.get_all_active_markets(max_markets=300),
-            timeout=25.0,
+    
+    for attempt in range(1, 4):
+        try:
+            markets = await asyncio.wait_for(
+                polymarket.get_all_active_markets(max_markets=300),
+                timeout=25.0,
+            )
+            if markets:
+                _markets_cache = markets
+                log.info("markets_refreshed", count=len(_markets_cache))
+                return
+            else:
+                log.warning("markets_empty_response", attempt=attempt)
+        except asyncio.TimeoutError:
+            log.error("markets_timeout", attempt=attempt)
+            if attempt < 3:
+                await asyncio.sleep(2 ** attempt)
+        except Exception as exc:
+            log.error("markets_error", attempt=attempt, error=str(exc)[:80])
+            if attempt < 3:
+                await asyncio.sleep(2 ** attempt)
+    
+    log.critical("markets_load_failed", cached=len(_markets_cache))
+    if not _markets_cache:
+        await send_telegram(
+            "⚠️ Markets failed to load (API unreachable?). Bot cannot trade.",
+            AlertLevel.ERROR,
         )
-        _markets_cache = markets
-        log.info("markets_refreshed", count=len(_markets_cache))
-    except asyncio.TimeoutError:
-        log.error("markets_refresh_timeout", cached=len(_markets_cache))
-        await send_telegram("Market refresh timed out — using cached data", AlertLevel.WARNING)
-    except Exception as exc:
-        log.error("markets_refresh_error", error=str(exc))
 
 
 async def news_scan_cycle() -> None:
@@ -195,7 +211,10 @@ async def run() -> None:
 
     # Fetch markets FIRST (no auth needed, most important thing)
     await _refresh_markets()
-    log.info("initial_markets_loaded", count=len(_markets_cache))
+    if not _markets_cache:
+        log.warning("startup_markets_failed")
+    else:
+        log.info("startup_markets_loaded", count=len(_markets_cache))
 
     # CLOB auth (can be slow/fail — don't block other startup)
     if settings.is_live and settings.polygon_private_key:
