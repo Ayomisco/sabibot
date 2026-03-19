@@ -13,6 +13,6 @@ COPY . .
 RUN mkdir -p data
 
 RUN pip install --no-cache-dir -e .
-RUN python -m spacy download en_core_web_sm
+RUN python -m spacy download en_core_web_md
 
 CMD ["python", "-m", "src.main"]

@@ -56,9 +56,14 @@ async def analyze_news_item(
     # Skip near-zero magnitude news — not worth the LLM calls.
     # Threshold lowered: 0.05 catches most real news (0.2 was too aggressive).
     if sentiment.magnitude < 0.05:
-        log.debug("news_too_low_magnitude",
-                  headline=headline[:60], magnitude=sentiment.magnitude)
+        log.info("news_too_low_magnitude",
+                 headline=headline[:60], magnitude=f"{sentiment.magnitude:.3f}")
         return []
+
+    log.info("analyzing_news", headline=headline[:60],
+             sentiment=f"{sentiment.sentiment:+.2f}",
+             magnitude=f"{sentiment.magnitude:.3f}",
+             entities=sentiment.entities[:5] if sentiment.entities else [])
 
     # Step 2: Get active markets if not provided
     if markets is None:
@@ -79,7 +84,8 @@ async def analyze_news_item(
     )
 
     if not matches:
-        log.debug("no_market_matches", headline=headline[:60])
+        log.info("no_market_matches", headline=headline[:60],
+                 markets_available=len(markets))
         return []
 
     # Step 4: For each match, estimate probability and compute edge

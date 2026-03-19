@@ -18,16 +18,26 @@ import re
 from dataclasses import dataclass
 
 from src.ai.embeddings import cosine_similarity, embed_texts
+from src.config import settings
 from src.polymarket.client import Market
 from src.utils.logger import get_logger
 
 log = get_logger("market_match")
 
-# Weights for composite scoring
-W_ENTITY = 0.30
-W_KEYWORD = 0.25
-W_SEMANTIC = 0.45
-MATCH_THRESHOLD = 0.25  # Lowered from 0.35 — was filtering out real matches
+# Weights for composite scoring — adjust based on embedding quality.
+# OpenAI embeddings are high-quality (1536-dim) → lean on semantic.
+# spaCy en_core_web_md has real 300-dim vectors — usable but not great.
+if settings.openai_api_key:
+    W_ENTITY = 0.25
+    W_KEYWORD = 0.20
+    W_SEMANTIC = 0.55
+else:
+    # spaCy fallback — semantic is unreliable, boost entity & keyword
+    W_ENTITY = 0.45
+    W_KEYWORD = 0.40
+    W_SEMANTIC = 0.15
+
+MATCH_THRESHOLD = 0.20  # Lowered from 0.25 — spaCy needs more room
 
 # Common words to exclude from keyword matching
 STOP_WORDS = frozenset({
@@ -66,8 +76,8 @@ def _extract_entities_simple(text: str) -> set[str]:
     Falls back to capitalized word extraction if spaCy fails.
     """
     try:
-        import spacy
-        nlp = spacy.load("en_core_web_sm")
+        from src.ai.embeddings import _get_spacy
+        nlp = _get_spacy()
         doc = nlp(text[:512])
         entities = set()
         for ent in doc.ents:
@@ -154,6 +164,7 @@ async def match_news_to_markets(
 
     # Score each market
     results: list[MatchResult] = []
+    near_misses: list[tuple[float, str]] = []  # (score, question) for debugging
     for i, market in enumerate(markets):
         market_text = f"{market.question} {market.description} {market.category}"
         market_kw = _extract_keywords(market_text)
@@ -184,6 +195,11 @@ async def match_news_to_markets(
                 matched_entities=matched_ents,
                 matched_keywords=matched_kws,
             ))
+        elif composite > 0.10:  # Track near-misses for debugging
+            near_misses.append((composite, market.question))
+
+    near_misses.sort(key=lambda x: x[0], reverse=True)
+    near_misses = near_misses[:3]  # Keep top 3 near-misses
 
     results.sort(key=lambda r: r.score, reverse=True)
 
@@ -192,7 +208,23 @@ async def match_news_to_markets(
             "market_match",
             headline=headline[:80],
             matches=len(results),
-            top_score=results[0].score if results else 0,
+            top_score=f"{results[0].score:.3f}",
+            top_market=results[0].market.question[:60],
         )
+    else:
+        # Log top near-miss to diagnose why nothing matched
+        if near_misses:
+            best = near_misses[0]
+            log.info(
+                "no_match_near_miss",
+                headline=headline[:80],
+                best_score=f"{best[0]:.3f}",
+                best_market=best[1][:60],
+                threshold=MATCH_THRESHOLD,
+                weights=f"E={W_ENTITY} K={W_KEYWORD} S={W_SEMANTIC}",
+            )
+        else:
+            log.info("no_match_all_zero", headline=headline[:80],
+                     markets_checked=len(markets))
 
     return results[:top_k]

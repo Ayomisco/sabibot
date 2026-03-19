@@ -27,11 +27,20 @@ def _client() -> httpx.AsyncClient:
 
 
 def _get_spacy():
-    """Lazy-load spaCy model."""
+    """Lazy-load spaCy model. Prefers en_core_web_md (has real word vectors)."""
     global _spacy_nlp
     if _spacy_nlp is None:
         import spacy
-        _spacy_nlp = spacy.load("en_core_web_sm")
+        for model in ("en_core_web_md", "en_core_web_lg", "en_core_web_sm"):
+            try:
+                _spacy_nlp = spacy.load(model)
+                log.info("spacy_loaded", model=model,
+                         has_vectors=_spacy_nlp.meta.get("vectors", {}).get("keys", 0) > 0)
+                break
+            except OSError:
+                continue
+        if _spacy_nlp is None:
+            raise RuntimeError("No spaCy model available")
     return _spacy_nlp
 
 
@@ -62,8 +71,17 @@ async def _embed_openai(texts: list[str]) -> list[list[float]]:
 
 
 def _embed_spacy(texts: list[str]) -> list[list[float]]:
-    """Fallback: spaCy word vector averaging. Lower quality but free."""
+    """Fallback: spaCy word vector averaging. Needs en_core_web_md or larger."""
     nlp = _get_spacy()
+    # Check if model actually has word vectors (en_core_web_sm does NOT)
+    keys = nlp.meta.get("vectors", {}).get("keys", 0)
+    if keys == 0:
+        log.warning("spacy_no_vectors",
+                    model=nlp.meta.get("name", "?"),
+                    hint="install en_core_web_md for real embeddings")
+        # Return zero vectors — caller should detect and skip semantic scoring
+        dim = 96
+        return [[0.0] * dim for _ in texts]
     vectors = []
     for text in texts:
         doc = nlp(text[:512])

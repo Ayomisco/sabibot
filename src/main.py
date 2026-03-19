@@ -100,7 +100,11 @@ async def news_scan_cycle() -> None:
         # 1. Scan for new news items
         new_items = await scan_all_sources()
         if not new_items:
+            log.debug("scan_cycle_no_new_news")
             return
+
+        log.info("scan_cycle_start", new_items=len(new_items),
+                 markets=len(_markets_cache))
 
         # 2. Ensure we have fresh market data
         if not _markets_cache:
