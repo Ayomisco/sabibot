@@ -398,6 +398,74 @@ async def cmd_kill(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     msg = "EMERGENCY STOP\nAll orders cancelled. Trading halted."
     if not cancelled:
+
+
+# ── /debug — Internal diagnostics ────────────────────────────────
+
+@_authorized
+async def cmd_debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show full internal state for debugging."""
+    from src.main import _markets_cache, _signals_cache
+    from src.polymarket.clob import clob
+    from src.intelligence.news_scanner import _last_gnews_call, _gnews_cycle
+    import sys
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+
+    # CLOB state
+    clob_ok = clob._client is not None
+    clob_creds = clob._creds is not None
+
+    # Balance (only if CLOB is connected)
+    balance_str = "N/A"
+    if clob_ok:
+        try:
+            bal = await clob.get_balance()
+            balance_str = f"${bal:.2f}"
+        except Exception:
+            balance_str = "ERROR"
+
+    # News scanner state
+    gnews_last = str(_last_gnews_call)[:19] if _last_gnews_call else "never"
+
+    lines = [
+        "Diagnostics",
+        "━" * 30,
+        "",
+        f"Time (UTC): {now.strftime('%H:%M:%S')}",
+        f"Python: {sys.version.split()[0]}",
+        f"Mode: {settings.trading_mode.value.upper()}",
+        f"Paused: {'Yes' if _paused else 'No'}",
+        "",
+        "CLOB",
+        f"  Client: {'OK' if clob_ok else 'NOT INITIALIZED'}",
+        f"  Creds: {'OK' if clob_creds else 'NONE'}",
+        f"  Sig Type: {settings.clob_signature_type}",
+        f"  Funder: {(settings.clob_funder_address or 'none')[:12]}...",
+        f"  Balance: {balance_str}",
+        "",
+        "Markets",
+        f"  Loaded: {len(_markets_cache)}",
+        f"  Accepting orders: {sum(1 for m in _markets_cache if m.accepting_orders)}",
+        "",
+        "Signals",
+        f"  Active: {len(_signals_cache)}",
+        "",
+        "News",
+        f"  GNews last call: {gnews_last}",
+        f"  GNews cycle: {_gnews_cycle}",
+        f"  GNews key: {'set' if settings.gnews_api_key else 'MISSING'}",
+        "",
+        "Config",
+        f"  News interval: {settings.news_scan_interval_seconds}s",
+        f"  Market interval: {settings.market_analysis_interval_seconds}s",
+        f"  Max position: ${settings.max_position_size_usd}",
+        f"  Min edge: {settings.min_edge_threshold}",
+        f"  Min confidence: {settings.min_confidence}",
+        f"  Primary LLM: {settings.llm_primary_provider.value}",
+    ]
+    await update.message.reply_text("\n".join(lines))
         msg += "\nWarning: Failed to cancel some orders. Check manually."
 
     await update.message.reply_text(msg)
@@ -435,6 +503,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await _send_help(query)
     elif data == "back":
         await _send_main_menu(query)
+    elif data == "debug":
+        await _send_debug(query)
 
 
 async def _send_main_menu(query) -> None:
@@ -456,6 +526,9 @@ async def _send_main_menu(query) -> None:
         [
             InlineKeyboardButton("Signals", callback_data="signals"),
             InlineKeyboardButton("Trades", callback_data="trades"),
+        ],
+        [
+            InlineKeyboardButton("Debug", callback_data="debug"),
         ],
     ]
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -623,6 +696,41 @@ async def _send_help(query) -> None:
     await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
+async def _send_debug(query) -> None:
+    from src.main import _markets_cache, _signals_cache
+    from src.polymarket.clob import clob
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+    clob_ok = clob._client is not None
+
+    balance_str = "N/A"
+    if clob_ok:
+        try:
+            bal = await clob.get_balance()
+            balance_str = f"${bal:.2f}"
+        except Exception:
+            balance_str = "ERROR"
+
+    msg = (
+        f"Debug\n{'━' * 22}\n\n"
+        f"UTC: {now.strftime('%H:%M:%S')}\n"
+        f"Mode: {settings.trading_mode.value.upper()}\n"
+        f"Paused: {'Yes' if _paused else 'No'}\n\n"
+        f"CLOB: {'OK' if clob_ok else 'NOT CONNECTED'}\n"
+        f"Balance: {balance_str}\n\n"
+        f"Markets: {len(_markets_cache)}\n"
+        f"Signals: {len(_signals_cache)}\n"
+    )
+    keyboard = [
+        [
+            InlineKeyboardButton("Refresh", callback_data="debug"),
+            InlineKeyboardButton("Back", callback_data="back"),
+        ],
+    ]
+    await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
 # ── Public API ───────────────────────────────────────────────────
 
 def is_paused() -> bool:
@@ -656,6 +764,9 @@ async def start_telegram_bot() -> Application | None:
     app.add_handler(CommandHandler("reset", cmd_reset))
     app.add_handler(CommandHandler("kill", cmd_kill))
 
+    # Debug
+    app.add_handler(CommandHandler("debug", cmd_debug))
+
     # Button callbacks
     app.add_handler(CallbackQueryHandler(handle_callback))
 
@@ -675,6 +786,7 @@ async def start_telegram_bot() -> Application | None:
         BotCommand("pause",   "Pause trading"),
         BotCommand("resume",  "Resume trading"),
         BotCommand("kill",    "Emergency stop"),
+        BotCommand("debug",   "Internal diagnostics"),
     ]
     await app.bot.set_my_commands(commands)
     await app.bot.set_chat_menu_button(menu_button=MenuButtonCommands())

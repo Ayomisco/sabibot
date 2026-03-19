@@ -10,6 +10,7 @@ The signing flow:
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
@@ -71,15 +72,22 @@ class CLOBClient:
             funder=funder,
         )
 
-        # Use pre-derived API key if provided, otherwise derive fresh
-        if settings.polymarket_api_key:
-            # The API key UUID maps to derived creds stored server-side.
-            # Just set the key; secret/passphrase are derived from the same signing.
-            self._creds = self._client.derive_api_key()
-            log.info("clob_using_configured_api_key",
-                     api_key=settings.polymarket_api_key[:8] + "...")
-        else:
-            self._creds = self._client.derive_api_key()
+        # derive_api_key() is SYNCHRONOUS and blocks the event loop.
+        # Wrap in to_thread + timeout so it can never hang the bot.
+        try:
+            self._creds = await asyncio.wait_for(
+                asyncio.to_thread(self._client.derive_api_key),
+                timeout=15.0,
+            )
+        except asyncio.TimeoutError:
+            log.error("clob_derive_api_key_timeout",
+                      msg="derive_api_key() hung for 15s — CLOB auth failed")
+            self._client = None
+            return
+        except Exception as exc:
+            log.error("clob_derive_api_key_failed", error=str(exc))
+            self._client = None
+            return
 
         self._client.set_api_creds(self._creds)
 

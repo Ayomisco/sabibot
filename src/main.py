@@ -193,14 +193,24 @@ async def run() -> None:
     # Initialize subsystems
     await init_db()
 
+    # Fetch markets FIRST (no auth needed, most important thing)
+    await _refresh_markets()
+    log.info("initial_markets_loaded", count=len(_markets_cache))
+
+    # CLOB auth (can be slow/fail — don't block other startup)
     if settings.is_live and settings.polygon_private_key:
-        await clob.initialize()
+        try:
+            await clob.initialize()
+        except Exception as exc:
+            log.error("clob_init_failed", error=str(exc))
+            await send_telegram(
+                f"CLOB auth failed: {str(exc)[:100]}\n"
+                "Bot will still scan news but CANNOT place trades.",
+                AlertLevel.ERROR,
+            )
 
     # Start Telegram bot
     telegram_app = await start_telegram_bot()
-
-    # Fetch initial market data
-    await _refresh_markets()
 
     # ── Balance check: query Polymarket CLOB internal balance ───
     if settings.is_live:
