@@ -398,9 +398,9 @@ async def cmd_kill(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     msg = "EMERGENCY STOP\nAll orders cancelled. Trading halted."
     if not cancelled:
-
-
-# ── /debug — Internal diagnostics ────────────────────────────────
+        msg += "\n(No open positions to cancel)"
+    await update.message.reply_text(msg)
+    log.error("emergency_kill_via_telegram")
 
 @_authorized
 async def cmd_debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -466,10 +466,6 @@ async def cmd_debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"  Primary LLM: {settings.llm_primary_provider.value}",
     ]
     await update.message.reply_text("\n".join(lines))
-        msg += "\nWarning: Failed to cancel some orders. Check manually."
-
-    await update.message.reply_text(msg)
-    log.error("emergency_kill_via_telegram")
 
 
 # ── Callback query handler (button presses) ─────────────────────
