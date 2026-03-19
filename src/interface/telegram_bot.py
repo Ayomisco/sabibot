@@ -402,68 +402,104 @@ async def cmd_kill(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 @_authorized
 async def cmd_debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show full internal state for debugging."""
+    """Show full internal state + live API test for debugging."""
     from src.main import _markets_cache, _signals_cache
     from src.polymarket.clob import clob
+    from src.polymarket.client import polymarket
     from src.intelligence.news_scanner import _last_gnews_call, _gnews_cycle
     import sys
+    import httpx
     from datetime import datetime, timezone
 
     now = datetime.now(timezone.utc)
 
     # CLOB state
     clob_ok = clob._client is not None
-    clob_creds = clob._creds is not None
 
-    # Balance (only if CLOB is connected)
+    # Balance
     balance_str = "N/A"
     if clob_ok:
         try:
             bal = await clob.get_balance()
             balance_str = f"${bal:.2f}"
-        except Exception:
-            balance_str = "ERROR"
+        except Exception as e:
+            balance_str = f"ERR: {str(e)[:30]}"
 
-    # News scanner state
+    # Last market fetch error
+    last_mkt_err = polymarket.last_error or "none"
+
+    # Live API test — hit the Polymarket API right now to see if it works
+    api_test = "not run"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as c:
+            resp = await c.get("https://clob.polymarket.com/sampling-markets", params={"limit": 1})
+            data = resp.json()
+            raw = data.get("data", [])
+            api_test = f"HTTP {resp.status_code}, {len(raw)} mkts"
+            if raw:
+                api_test += f", first: {raw[0].get('question', '?')[:30]}"
+    except Exception as e:
+        api_test = f"FAIL: {type(e).__name__}: {str(e)[:50]}"
+
     gnews_last = str(_last_gnews_call)[:19] if _last_gnews_call else "never"
 
     lines = [
         "Diagnostics",
         "━" * 30,
         "",
-        f"Time (UTC): {now.strftime('%H:%M:%S')}",
+        f"UTC: {now.strftime('%H:%M:%S')}",
         f"Python: {sys.version.split()[0]}",
         f"Mode: {settings.trading_mode.value.upper()}",
         f"Paused: {'Yes' if _paused else 'No'}",
         "",
-        "CLOB",
-        f"  Client: {'OK' if clob_ok else 'NOT INITIALIZED'}",
-        f"  Creds: {'OK' if clob_creds else 'NONE'}",
-        f"  Sig Type: {settings.clob_signature_type}",
-        f"  Funder: {(settings.clob_funder_address or 'none')[:12]}...",
+        "CLOB Auth",
+        f"  Client: {'OK' if clob_ok else 'NOT INIT'}",
         f"  Balance: {balance_str}",
+        "",
+        "API Test (live)",
+        f"  {api_test}",
         "",
         "Markets",
         f"  Loaded: {len(_markets_cache)}",
-        f"  Accepting orders: {sum(1 for m in _markets_cache if m.accepting_orders)}",
+        f"  Last error: {last_mkt_err[:60]}",
         "",
-        "Signals",
-        f"  Active: {len(_signals_cache)}",
+        f"Signals: {len(_signals_cache)}",
         "",
-        "News",
-        f"  GNews last call: {gnews_last}",
-        f"  GNews cycle: {_gnews_cycle}",
-        f"  GNews key: {'set' if settings.gnews_api_key else 'MISSING'}",
+        f"News: GNews cycle {_gnews_cycle}, last {gnews_last}",
         "",
-        "Config",
-        f"  News interval: {settings.news_scan_interval_seconds}s",
-        f"  Market interval: {settings.market_analysis_interval_seconds}s",
-        f"  Max position: ${settings.max_position_size_usd}",
-        f"  Min edge: {settings.min_edge_threshold}",
-        f"  Min confidence: {settings.min_confidence}",
-        f"  Primary LLM: {settings.llm_primary_provider.value}",
+        "Use /refresh to force market reload",
     ]
     await update.message.reply_text("\n".join(lines))
+
+
+@_authorized
+async def cmd_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Manually trigger market refresh and report results."""
+    from src.main import _refresh_markets, _markets_cache
+
+    await update.message.reply_text("Refreshing markets... (this may take 15-30s)")
+
+    before = len(_markets_cache)
+    await _refresh_markets()
+    after = len(_markets_cache)
+
+    from src.polymarket.client import polymarket
+    err = polymarket.last_error
+
+    if after > 0:
+        msg = (
+            f"Markets refreshed!\n"
+            f"Before: {before}\n"
+            f"After: {after}\n"
+            f"Sample: {_markets_cache[0].question[:50]}"
+        )
+    else:
+        msg = (
+            f"Market refresh FAILED\n"
+            f"Cache still: {after}\n"
+            f"Error: {err or 'unknown'}"
+        )
+    await update.message.reply_text(msg)
 
 
 # ── Callback query handler (button presses) ─────────────────────
@@ -693,7 +729,9 @@ async def _send_help(query) -> None:
 async def _send_debug(query) -> None:
     from src.main import _markets_cache, _signals_cache
     from src.polymarket.clob import clob
+    from src.polymarket.client import polymarket
     from datetime import datetime, timezone
+    import httpx
 
     now = datetime.now(timezone.utc)
     clob_ok = clob._client is not None
@@ -706,14 +744,29 @@ async def _send_debug(query) -> None:
         except Exception:
             balance_str = "ERROR"
 
+    last_mkt_err = polymarket.last_error or "none"
+
+    # Live API test
+    api_test = "not run"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as c:
+            resp = await c.get("https://clob.polymarket.com/sampling-markets", params={"limit": 1})
+            data = resp.json()
+            raw = data.get("data", [])
+            api_test = f"HTTP {resp.status_code}, {len(raw)} mkts"
+    except Exception as e:
+        api_test = f"FAIL: {type(e).__name__}: {str(e)[:50]}"
+
     msg = (
-        f"Debug\n{'━' * 22}\n\n"
+        f"Diagnostics\n{'━' * 30}\n\n"
         f"UTC: {now.strftime('%H:%M:%S')}\n"
         f"Mode: {settings.trading_mode.value.upper()}\n"
         f"Paused: {'Yes' if _paused else 'No'}\n\n"
-        f"CLOB: {'OK' if clob_ok else 'NOT CONNECTED'}\n"
+        f"CLOB: {'OK' if clob_ok else 'NOT INIT'}\n"
         f"Balance: {balance_str}\n\n"
+        f"API Test: {api_test}\n\n"
         f"Markets: {len(_markets_cache)}\n"
+        f"Last err: {last_mkt_err[:60]}\n\n"
         f"Signals: {len(_signals_cache)}\n"
     )
     keyboard = [
@@ -760,6 +813,7 @@ async def start_telegram_bot() -> Application | None:
 
     # Debug
     app.add_handler(CommandHandler("debug", cmd_debug))
+    app.add_handler(CommandHandler("refresh", cmd_refresh))
 
     # Button callbacks
     app.add_handler(CallbackQueryHandler(handle_callback))
@@ -781,6 +835,7 @@ async def start_telegram_bot() -> Application | None:
         BotCommand("resume",  "Resume trading"),
         BotCommand("kill",    "Emergency stop"),
         BotCommand("debug",   "Internal diagnostics"),
+        BotCommand("refresh", "Force market reload"),
     ]
     await app.bot.set_my_commands(commands)
     await app.bot.set_chat_menu_button(menu_button=MenuButtonCommands())

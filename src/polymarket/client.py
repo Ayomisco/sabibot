@@ -48,8 +48,9 @@ class PolymarketClient:
     def __init__(self) -> None:
         self._clob = httpx.AsyncClient(timeout=30.0, base_url=CLOB_BASE_URL)
         self._gamma = httpx.AsyncClient(timeout=30.0, base_url=GAMMA_BASE_URL)
+        self.last_error: str = ""  # Track last error for diagnostics
 
-    @with_retry(max_attempts=3, min_wait=1.0, retry_on=(httpx.HTTPError,))
+    @with_retry(max_attempts=3, min_wait=1.0, retry_on=(httpx.HTTPError, httpx.TimeoutException))
     async def get_markets(
         self,
         limit: int = 100,
@@ -92,21 +93,21 @@ class PolymarketClient:
             try:
                 batch, cursor = await self.get_markets(limit=100, next_cursor=cursor)
                 page += 1
-                log.debug("market_page_fetched", page=page, batch_size=len(batch), cursor=str(cursor)[:20] if cursor else None)
                 
                 if not batch:
                     empty_streak += 1
                     if empty_streak >= 3 or not cursor:
-                        log.warning("market_pagination_stopped", empty_streak=empty_streak, has_cursor=bool(cursor), total=len(all_markets))
                         break
                     continue
                     
                 empty_streak = 0
                 all_markets.extend(batch)
+                self.last_error = ""  # Clear on success
                 if not cursor:
                     break
             except Exception as exc:
-                log.error("market_page_error", page=page, error=str(exc), total_so_far=len(all_markets))
+                self.last_error = f"Page {page}: {type(exc).__name__}: {str(exc)[:120]}"
+                log.error("market_page_error", page=page, error=self.last_error, total_so_far=len(all_markets))
                 break
 
         log.info("fetched_markets", count=len(all_markets), pages=page)
