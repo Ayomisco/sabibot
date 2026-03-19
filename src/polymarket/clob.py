@@ -98,6 +98,18 @@ class CLOBClient:
                 "CLOBClient not initialized. Call initialize() first.")
         return self._client
 
+    async def get_balance(self) -> float:
+        """Return available USDC balance from Polymarket's CLOB (internal balance)."""
+        try:
+            result = self.client.get_balance()
+            # result may be a dict or a float depending on library version
+            if isinstance(result, dict):
+                return float(result.get("balance", result.get("available", 0)))
+            return float(result)
+        except Exception as exc:
+            log.warning("clob_balance_failed", error=str(exc))
+            return 0.0
+
     # ── Order Operations ─────────────────────────────────────────
 
     @with_retry(max_attempts=2, min_wait=1.0, retry_on=(Exception,))

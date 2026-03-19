@@ -192,30 +192,25 @@ async def run() -> None:
     # Fetch initial market data
     await _refresh_markets()
 
-    # ── Balance check: log USDC in both EOA and proxy wallet ─────
+    # ── Balance check: query Polymarket CLOB internal balance ───
     if settings.is_live:
         try:
-            from web3 import Web3
-            from web3.middleware import ExtraDataToPOAMiddleware
-            USDC_CONTRACT = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
-            USDC_ABI = [{"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]
-            w3 = Web3(Web3.HTTPProvider(settings.polygon_rpc_url))
-            w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
-            usdc = w3.eth.contract(address=Web3.to_checksum_address(USDC_CONTRACT), abi=USDC_ABI)
-
-            # Check whichever address holds funds
-            check_addr = settings.clob_funder_address or settings.polygon_wallet_address
-            raw_balance = usdc.functions.balanceOf(Web3.to_checksum_address(check_addr)).call()
-            usdc_balance = raw_balance / 1_000_000  # 6 decimals
-
-            log.info("usdc_balance", wallet=check_addr[:10] + "...", usdc=f"${usdc_balance:.2f}")
+            usdc_balance = await clob.get_balance()
+            log.info("clob_balance", usdc=f"${usdc_balance:.2f}")
+            funder = settings.clob_funder_address or settings.polygon_wallet_address
             await send_telegram(
                 f"Started in LIVE mode\n"
-                f"Funder wallet: {check_addr[:10]}...\n"
-                f"On-chain USDC: ${usdc_balance:.2f}\n"
+                f"API wallet: {funder[:10]}...\n"
+                f"Available to trade: ${usdc_balance:.2f} USDC\n"
                 f"Markets loaded: {len(_markets_cache)}",
                 AlertLevel.INFO,
             )
+            if usdc_balance < 1.0:
+                log.warning("low_clob_balance", usdc=usdc_balance)
+                await send_telegram(
+                    f"Low balance: ${usdc_balance:.2f} — top up via Polymarket Deposit",
+                    AlertLevel.WARNING,
+                )
         except Exception as exc:
             log.warning("balance_check_failed", error=str(exc))
 
