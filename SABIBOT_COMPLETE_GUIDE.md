@@ -9,25 +9,25 @@
 
 1. [What SabiBot Does](#1-what-sabibot-does)
 2. [How It Works (Pipeline)](#2-how-it-works-pipeline)
-3. [Architecture & File Structure](#3-architecture--file-structure)
+3. [Architecture &amp; File Structure](#3-architecture--file-structure)
 4. [All Environment Variables](#4-all-environment-variables)
-5. [Risk Management & Parameters](#5-risk-management--parameters)
+5. [Risk Management &amp; Parameters](#5-risk-management--parameters)
 6. [Trading Strategies (6 Strategies)](#6-trading-strategies)
-7. [AI & LLM Integration](#7-ai--llm-integration)
+7. [AI &amp; LLM Integration](#7-ai--llm-integration)
 8. [News Sources (RSS + GNews)](#8-news-sources)
 9. [Polymarket Integration (CLOB)](#9-polymarket-integration)
 10. [Telegram Bot Commands](#10-telegram-bot-commands)
-11. [Database & Data Storage](#11-database--data-storage)
+11. [Database &amp; Data Storage](#11-database--data-storage)
 12. [Deployment (Railway)](#12-deployment-railway)
 13. [Builder Fee (Revenue)](#13-builder-fee-revenue)
-14. [Auto-Claiming & Withdrawals](#14-auto-claiming--withdrawals)
+14. [Auto-Claiming &amp; Withdrawals](#14-auto-claiming--withdrawals)
 15. [Realistic Profit Expectations](#15-realistic-profit-expectations)
 16. [How to Tune the Bot](#16-how-to-tune-the-bot)
-17. [Monitoring & Debugging](#17-monitoring--debugging)
-18. [API Keys & Services Used](#18-api-keys--services-used)
+17. [Monitoring &amp; Debugging](#17-monitoring--debugging)
+18. [API Keys &amp; Services Used](#18-api-keys--services-used)
 19. [Utility Scripts](#19-utility-scripts)
 20. [Costs](#20-costs)
-21. [Common Issues & Troubleshooting](#21-common-issues--troubleshooting)
+21. [Common Issues &amp; Troubleshooting](#21-common-issues--troubleshooting)
 
 ---
 
@@ -174,37 +174,37 @@ sabibot/
 
 ## 4. All Environment Variables
 
-| Variable | Description | Your Current Value |
-|----------|-------------|-------------------|
-| `GROQ_API_KEY` | Groq API key (FREE — Llama 3.3 70B) | Set ✅ |
-| `GROQ_MODEL` | Groq model name | `llama-3.3-70b-versatile` |
-| `ANTHROPIC_API_KEY` | Claude API key (smart-tier decisions) | Set ✅ |
-| `ANTHROPIC_MODEL` | Claude model name | `claude-sonnet-4-20250514` |
-| `OPENAI_API_KEY` | OpenAI key (optional — embeddings) | Not set |
-| `LLM_PRIMARY_PROVIDER` | Primary LLM | `groq` (FREE) |
-| `LLM_FALLBACK_PROVIDER` | Fallback LLM | `anthropic` (Claude) |
-| `POLYGON_PRIVATE_KEY` | Your Polygon wallet private key | Set ✅ |
-| `POLYGON_WALLET_ADDRESS` | Your wallet address | `0xE597...2E69` |
-| `POLYGON_RPC_URL` | Polygon RPC endpoint | Alchemy ✅ |
-| `POLYMARKET_CLOB_URL` | CLOB API endpoint | `https://clob.polymarket.com` |
-| `CHAIN_ID` | Polygon chain ID | `137` |
-| `BUILDER_WALLET_ADDRESS` | Fee collection wallet (1% per trade) | `0x8f0E...294e` |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token | Set ✅ |
-| `TELEGRAM_CHAT_ID` | Your Telegram chat ID | Set ✅ |
-| `GNEWS_API_KEY` | GNews API key | Set ✅ |
-| `DATABASE_URL` | SQLite database path | `sqlite+aiosqlite:///data/sabibot.db` |
-| `TRADING_MODE` | `live`, `paper`, or `backtest` | `live` |
-| `MAX_POSITION_SIZE_USD` | Max per-trade size | `$10.00` |
-| `MAX_PORTFOLIO_EXPOSURE_USD` | Max total open exposure | `$100.00` |
-| `MAX_SINGLE_MARKET_PCT` | Max % of portfolio in one market | `10%` |
-| `MAX_DRAWDOWN_PCT` | Drawdown halt threshold | `25%` |
-| `KELLY_MULTIPLIER` | Kelly fraction (0.50 = half Kelly) | `0.50` |
-| `MIN_EDGE_THRESHOLD` | Minimum edge to trade | `5%` |
-| `MIN_CONFIDENCE` | Minimum confidence to trade | `55%` |
-| `NEWS_SCAN_INTERVAL_SECONDS` | How often to scan news | `60s` |
-| `MARKET_ANALYSIS_INTERVAL_SECONDS` | How often to run strategies | `300s` (5 min) |
-| `PORTFOLIO_REBALANCE_INTERVAL_SECONDS` | How often to rebalance | `3600s` (1 hr) |
-| `LOG_LEVEL` | Logging verbosity | `INFO` |
+| Variable                                 | Description                           | Your Current Value                      |
+| ---------------------------------------- | ------------------------------------- | --------------------------------------- |
+| `GROQ_API_KEY`                         | Groq API key (FREE — Llama 3.3 70B)  | Set ✅                                  |
+| `GROQ_MODEL`                           | Groq model name                       | `llama-3.3-70b-versatile`             |
+| `ANTHROPIC_API_KEY`                    | Claude API key (smart-tier decisions) | Set ✅                                  |
+| `ANTHROPIC_MODEL`                      | Claude model name                     | `claude-sonnet-4-20250514`            |
+| `OPENAI_API_KEY`                       | OpenAI key (optional — embeddings)   | Not set                                 |
+| `LLM_PRIMARY_PROVIDER`                 | Primary LLM                           | `groq` (FREE)                         |
+| `LLM_FALLBACK_PROVIDER`                | Fallback LLM                          | `anthropic` (Claude)                  |
+| `POLYGON_PRIVATE_KEY`                  | Your Polygon wallet private key       | Set ✅                                  |
+| `POLYGON_WALLET_ADDRESS`               | Your wallet address                   | `0xE597...2E69`                       |
+| `POLYGON_RPC_URL`                      | Polygon RPC endpoint                  | Alchemy ✅                              |
+| `POLYMARKET_CLOB_URL`                  | CLOB API endpoint                     | `https://clob.polymarket.com`         |
+| `CHAIN_ID`                             | Polygon chain ID                      | `137`                                 |
+| `BUILDER_WALLET_ADDRESS`               | Fee collection wallet (1% per trade)  | `0x8f0E...294e`                       |
+| `TELEGRAM_BOT_TOKEN`                   | Telegram bot token                    | Set ✅                                  |
+| `TELEGRAM_CHAT_ID`                     | Your Telegram chat ID                 | Set ✅                                  |
+| `GNEWS_API_KEY`                        | GNews API key                         | Set ✅                                  |
+| `DATABASE_URL`                         | SQLite database path                  | `sqlite+aiosqlite:///data/sabibot.db` |
+| `TRADING_MODE`                         | `live`, `paper`, or `backtest`  | `live`                                |
+| `MAX_POSITION_SIZE_USD`                | Max per-trade size                    | `$10.00`                              |
+| `MAX_PORTFOLIO_EXPOSURE_USD`           | Max total open exposure               | `$100.00`                             |
+| `MAX_SINGLE_MARKET_PCT`                | Max % of portfolio in one market      | `10%`                                 |
+| `MAX_DRAWDOWN_PCT`                     | Drawdown halt threshold               | `25%`                                 |
+| `KELLY_MULTIPLIER`                     | Kelly fraction (0.50 = half Kelly)    | `0.50`                                |
+| `MIN_EDGE_THRESHOLD`                   | Minimum edge to trade                 | `5%`                                  |
+| `MIN_CONFIDENCE`                       | Minimum confidence to trade           | `55%`                                 |
+| `NEWS_SCAN_INTERVAL_SECONDS`           | How often to scan news                | `60s`                                 |
+| `MARKET_ANALYSIS_INTERVAL_SECONDS`     | How often to run strategies           | `300s` (5 min)                        |
+| `PORTFOLIO_REBALANCE_INTERVAL_SECONDS` | How often to rebalance                | `3600s` (1 hr)                        |
+| `LOG_LEVEL`                            | Logging verbosity                     | `INFO`                                |
 
 ---
 
@@ -214,16 +214,16 @@ sabibot/
 
 Every trade proposal goes through these checks IN ORDER. If any fails, the trade is rejected:
 
-| # | Check | Current Setting | What It Does |
-|---|-------|-----------------|--------------|
-| 1 | **Drawdown Halt** | 25% max | If cumulative losses exceed 25% of starting balance, ALL trading stops |
-| 2 | **Edge Threshold** | 5% min | Trade must have ≥5% edge (our fair value vs market price) |
-| 3 | **Confidence Floor** | 55% min | Aggregated signal confidence must be ≥55% |
-| 4 | **Kelly Sizing** | Half Kelly × 0.50 | Position size = Kelly formula × 0.50 (conservative) |
-| 5 | **Position Cap** | $10.00 max | No single trade exceeds $10 |
-| 6 | **Portfolio Cap** | $100.00 max | Total open positions cannot exceed $100 |
-| 7 | **Market Concentration** | 10% max | No more than 10% of portfolio in any single market |
-| 8 | **Minimum Size** | $1.00 | Trades below $1 are rejected (not worth the gas) |
+| # | Check                          | Current Setting                                          | What It Does                                                           |
+| - | ------------------------------ | -------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 1 | **Drawdown Halt**        | 25% max                                                  | If cumulative losses exceed 25% of starting balance, ALL trading stops |
+| 2 | **Edge Threshold**       | 5% min                                                   | Trade must have ≥5% edge (our fair value vs market price)             |
+| 3 | **Confidence Floor**     | 55% min                                                  | Aggregated signal confidence must be ≥55%                             |
+| 4 | **Kelly Sizing**         | Half Kelly × 0.50                                       | Position size = Kelly formula × 0.50 (conservative)                   |
+| 5 | **Position Cap**         | $10.00 max | No single trade exceeds $10                 |                                                                        |
+| 6 | **Portfolio Cap**        | $100.00 max | Total open positions cannot exceed $100    |                                                                        |
+| 7 | **Market Concentration** | 10% max                                                  | No more than 10% of portfolio in any single market                     |
+| 8 | **Minimum Size**         | $1.00 | Trades below $1 are rejected (not worth the gas) |                                                                        |
 
 ### Kelly Criterion Formula
 
@@ -246,33 +246,39 @@ If cumulative losses hit 25% of your starting balance, the bot enters **HALT MOD
 SabiBot runs 6 strategies simultaneously. Each evaluates markets independently and produces trade proposals ranked by edge:
 
 ### Strategy 1: Timezone Arbitrage (`timezone_arb.py`)
+
 - **Logic**: Polymarket volume drops significantly during US sleep hours (2-8 AM EST). Markets may drift from true value when fewer traders are active.
 - **Edge**: Buys undervalued markets during low-activity hours, expecting correction when US traders wake up.
 - **When Active**: Only between 2:00-8:00 AM EST.
 - **Min Edge**: 5%
 
 ### Strategy 2: Sentiment Trade (`sentiment_trade.py`)
+
 - **Logic**: When breaking news has strong positive/negative sentiment about a market, the bot trades before the market fully reacts.
 - **Edge**: News sentiment strongly suggests YES → buy YES shares. News strongly bearish → buy NO shares.
 - **Signal**: Uses AI-generated sentiment scores from news analysis.
 - **Min Sentiment**: >0.6 (bullish) or <-0.6 (bearish)
 
 ### Strategy 3: Momentum (`momentum.py`)
+
 - **Logic**: Markets that have been moving in one direction tend to continue. If YES price has been rising, buy YES.
 - **Edge**: Follows trends, exits when momentum fades.
 - **Lookback**: Tracks recent price movement direction.
 
 ### Strategy 4: Mean Reversion (`mean_reversion.py`)
+
 - **Logic**: Markets that spike or crash quickly tend to revert toward their fair value. If YES price drops sharply on panic, buy it expecting a bounce.
 - **Edge**: Fades overreactions — buys fear, sells greed.
 - **Trigger**: Price moves >15% from estimated fair value.
 
 ### Strategy 5: Cross-Market Arbitrage (`cross_market_arb.py`)
+
 - **Logic**: Related markets (e.g., "Will Biden win?" and "Will a Democrat win?") should have correlated prices. When they diverge, trade the gap.
 - **Edge**: Pure arbitrage when related markets misprice.
 - **Method**: Compares sentiment and fair values across correlated markets.
 
 ### Strategy 6: Market Making (`market_making.py`)
+
 - **Logic**: Places both buy and sell orders around fair value, earning the spread.
 - **Edge**: Small but consistent profit from bid-ask spread.
 - **Risk**: Can get stuck holding a position if market moves quickly.
@@ -287,25 +293,26 @@ Every 5 minutes, ALL 6 strategies evaluate ALL matched markets. Each produces 0 
 
 ### Two-Tier LLM System
 
-| Tier | Provider | Model | Cost | Used For |
-|------|----------|-------|------|----------|
-| **FREE** | Groq | Llama 3.3 70B | $0/mo | News analysis, sentiment scoring, trade explanations |
-| **SMART** | Anthropic | Claude Sonnet | ~$20/mo | Probability estimation (real money decisions) |
+| Tier            | Provider  | Model         | Cost    | Used For                                             |
+| --------------- | --------- | ------------- | ------- | ---------------------------------------------------- |
+| **FREE**  | Groq      | Llama 3.3 70B | $0/mo   | News analysis, sentiment scoring, trade explanations |
+| **SMART** | Anthropic | Claude Sonnet | ~$20/mo | Probability estimation (real money decisions)        |
 
 ### Three AI Functions
 
 1. **`analyze_news(headline, content)`** — FREE tier
+
    - Input: News headline + summary
    - Output: Relevance score, entities, key topics, sentiment
    - Speed: ~0.3s per call via Groq
-
 2. **`estimate_probability(market_question, news, current_price)`** — SMART tier
+
    - Input: Market question + all relevant signals + current price
    - Output: Probability estimate (0-1) with reasoning
    - Used for: ONLY the final probability that goes into Kelly sizing
    - This is the most critical AI call — uses Claude for accuracy
-
 3. **`explain_trade(market, side, reasoning)`** — FREE tier
+
    - Input: Market details + trade reasoning
    - Output: Human-readable explanation for Telegram notifications
 
@@ -329,22 +336,22 @@ Freshness decay: signals older than 4 hours carry half their original weight.
 
 ### RSS Feeds (13 feeds — FREE, unlimited)
 
-| Feed | Topics |
-|------|--------|
-| Reuters World | International news |
-| Reuters Business | Financial news |
-| AP News | General headlines |
-| BBC News | World news |
-| Politico | US politics |
-| The Hill | US politics & policy |
-| CoinDesk | Crypto markets |
-| CoinTelegraph | Crypto & blockchain |
-| Decrypt | Crypto & web3 |
-| CNBC | Business & markets |
-| Ars Technica | Technology |
-| ESPN | Sports |
-| BBC Sport | International sports |
-| Variety | Entertainment |
+| Feed             | Topics               |
+| ---------------- | -------------------- |
+| Reuters World    | International news   |
+| Reuters Business | Financial news       |
+| AP News          | General headlines    |
+| BBC News         | World news           |
+| Politico         | US politics          |
+| The Hill         | US politics & policy |
+| CoinDesk         | Crypto markets       |
+| CoinTelegraph    | Crypto & blockchain  |
+| Decrypt          | Crypto & web3        |
+| CNBC             | Business & markets   |
+| Ars Technica     | Technology           |
+| ESPN             | Sports               |
+| BBC Sport        | International sports |
+| Variety          | Entertainment        |
 
 ### GNews API (100 requests/day — FREE tier)
 
@@ -385,24 +392,25 @@ Freshness decay: signals older than 4 hours carry half their original weight.
 
 Talk to `@Sabi01_bot` on Telegram:
 
-| Command | Description |
-|---------|-------------|
-| `/start` | Welcome message with inline keyboard buttons |
-| `/guide` | How SabiBot works (for you) |
-| `/how` | Shareable guide — how to use a bot like this (for other traders) |
-| `/help` | List all commands |
-| `/status` | Current bot status, balance, open positions |
-| `/trades` | Recent trade history |
-| `/markets` | Active markets being tracked |
-| `/signals` | Latest signals and sentiment analysis |
-| `/pause` | Pause trading (stops placing new orders) |
-| `/resume` | Resume trading |
-| `/reset` | Reset drawdown halt (after big losses) |
-| `/kill` | Emergency stop — cancels all orders, halts bot |
+| Command      | Description                                                       |
+| ------------ | ----------------------------------------------------------------- |
+| `/start`   | Welcome message with inline keyboard buttons                      |
+| `/guide`   | How SabiBot works (for you)                                       |
+| `/how`     | Shareable guide — how to use a bot like this (for other traders) |
+| `/help`    | List all commands                                                 |
+| `/status`  | Current bot status, balance, open positions                       |
+| `/trades`  | Recent trade history                                              |
+| `/markets` | Active markets being tracked                                      |
+| `/signals` | Latest signals and sentiment analysis                             |
+| `/pause`   | Pause trading (stops placing new orders)                          |
+| `/resume`  | Resume trading                                                    |
+| `/reset`   | Reset drawdown halt (after big losses)                            |
+| `/kill`    | Emergency stop — cancels all orders, halts bot                   |
 
 ### Inline Keyboard
 
 When you send `/start`, you get quick-access buttons:
+
 - 📊 Status | 📈 Trades
 - 🎯 Markets | 📡 Signals
 - 📖 Guide | ⏸️ Pause
@@ -431,31 +439,35 @@ polymarket.com/event/...
 SQLite database at `data/sabibot.db` with 4 tables:
 
 ### Trade Table
-| Column | Type | Description |
-|--------|------|-------------|
-| id | int | Auto-increment primary key |
-| condition_id | str | Polymarket market condition ID |
-| market_question | str | Market question text |
-| strategy | str | Which strategy placed this trade |
-| side | enum | YES or NO |
-| amount_usd | float | Dollar amount |
-| price | float | Entry price |
-| shares | float | Number of shares |
-| edge | float | Expected edge at entry |
-| confidence | float | Signal confidence at entry |
-| status | enum | PENDING → FILLED → SETTLED or FAILED |
-| order_id | str | CLOB order ID |
-| pnl | float | Realized profit/loss |
-| notes | str | AI-generated reasoning |
-| created_at | datetime | When trade was placed |
+
+| Column          | Type     | Description                            |
+| --------------- | -------- | -------------------------------------- |
+| id              | int      | Auto-increment primary key             |
+| condition_id    | str      | Polymarket market condition ID         |
+| market_question | str      | Market question text                   |
+| strategy        | str      | Which strategy placed this trade       |
+| side            | enum     | YES or NO                              |
+| amount_usd      | float    | Dollar amount                          |
+| price           | float    | Entry price                            |
+| shares          | float    | Number of shares                       |
+| edge            | float    | Expected edge at entry                 |
+| confidence      | float    | Signal confidence at entry             |
+| status          | enum     | PENDING → FILLED → SETTLED or FAILED |
+| order_id        | str      | CLOB order ID                          |
+| pnl             | float    | Realized profit/loss                   |
+| notes           | str      | AI-generated reasoning                 |
+| created_at      | datetime | When trade was placed                  |
 
 ### Signal Table
+
 Stores every signal generated by the intelligence layer.
 
 ### MarketCache Table
+
 Caches Polymarket market data to reduce API calls.
 
 ### PortfolioSnapshot Table
+
 Hourly snapshots of portfolio value for P&L tracking.
 
 ---
@@ -477,6 +489,7 @@ SabiBot auto-deploys from GitHub to Railway:
 4. Starts the bot with `python -m src.main`
 
 ### Railway Config (`railway.json`)
+
 ```json
 {
   "build": { "builder": "NIXPACKS" },
@@ -516,12 +529,14 @@ This is configured via the `BUILDER_WALLET_ADDRESS` env variable and the `fee_ra
 4. **Withdrawals**: You withdraw USDC from Polymarket to your wallet manually at polymarket.com → Portfolio → Withdraw.
 
 ### What the bot handles:
+
 - ✅ Buying shares (placing orders)
 - ✅ Selling shares (closing positions)
 - ✅ Canceling unfilled orders
 - ✅ Tracking P&L
 
 ### What you handle:
+
 - 💰 Depositing USDC to Polymarket
 - 💰 Withdrawing USDC from Polymarket to your wallet
 - 💰 Bridging USDC from Polygon to other chains/exchanges if needed
@@ -529,6 +544,7 @@ This is configured via the `BUILDER_WALLET_ADDRESS` env variable and the `fee_ra
 ### Portfolio Value
 
 Your total value = USDC balance + value of all open positions. As markets move in your favor, your positions become worth more. You can:
+
 - Let markets resolve (automatic — shares become $1 or $0)
 - Sell positions early if you want to lock in profit/cut losses
 
@@ -538,13 +554,13 @@ Your total value = USDC balance + value of all open positions. As markets move i
 
 ### Honest Numbers
 
-| Starting Balance | Conservative (Monthly) | Moderate (Monthly) | Aggressive (Monthly) |
-|-----------------|----------------------|-------------------|---------------------|
-| $11 | $0.50–$2.00 | $2.00–$5.00 | $5.00–$11.00 |
-| $50 | $2.50–$10.00 | $10.00–$25.00 | $25.00–$50.00 |
-| $100 | $5.00–$20.00 | $20.00–$50.00 | $50.00–$100.00 |
-| $500 | $25–$100 | $100–$250 | $250–$500 |
-| $1,000 | $50–$200 | $200–$500 | $500–$1,000 |
+| Starting Balance                                        | Conservative (Monthly) | Moderate (Monthly) | Aggressive (Monthly) |
+| ------------------------------------------------------- | ---------------------- | ------------------ | -------------------- |
+| $11 | $0.50–$2.00 | $2.00–$5.00 | $5.00–$11.00       |                        |                    |                      |
+| $50 | $2.50–$10.00 | $10.00–$25.00 | $25.00–$50.00   |                        |                    |                      |
+| $100 | $5.00–$20.00 | $20.00–$50.00 | $50.00–$100.00 |                        |                    |                      |
+| $500 | $25–$100 | $100–$250 | $250–$500              |                        |                    |                      |
+| $1,000 | $50–$200 | $200–$500 | $500–$1,000          |                        |                    |                      |
 
 ### Why $11 → $1,000 in 24 Hours Is Unrealistic
 
@@ -575,6 +591,7 @@ Your total value = USDC balance + value of all open positions. As markets move i
 ### Make It More Aggressive (Higher Risk, Higher Reward)
 
 Edit `.env`:
+
 ```
 MAX_POSITION_SIZE_USD=25.0      # Bigger individual trades
 MAX_PORTFOLIO_EXPOSURE_USD=200.0 # More open positions
@@ -628,21 +645,22 @@ Faster scanning = more trades but more API usage. Slower = fewer trades but more
 ### Logs
 
 On Railway, check logs in the dashboard. Locally:
+
 ```bash
 python -m src.main 2>&1 | tee bot.log
 ```
 
 ### Key Log Messages
 
-| Log Message | Meaning |
-|-------------|---------|
-| `order_placed` | Successfully placed an order on CLOB |
-| `order_failed` | Order placement failed (check error) |
-| `proposal_rejected` | Risk manager rejected a trade (check reason) |
-| `drawdown_halt` | Bot stopped due to excessive losses |
-| `news_scan_complete` | Finished scanning news sources |
-| `live_order_placed` | Real money trade executed |
-| `paper_trade` | Simulated trade (paper mode) |
+| Log Message            | Meaning                                      |
+| ---------------------- | -------------------------------------------- |
+| `order_placed`       | Successfully placed an order on CLOB         |
+| `order_failed`       | Order placement failed (check error)         |
+| `proposal_rejected`  | Risk manager rejected a trade (check reason) |
+| `drawdown_halt`      | Bot stopped due to excessive losses          |
+| `news_scan_complete` | Finished scanning news sources               |
+| `live_order_placed`  | Real money trade executed                    |
+| `paper_trade`        | Simulated trade (paper mode)                 |
 
 ### Scripts for Manual Checking
 
@@ -664,15 +682,15 @@ python scripts/debug_api.py
 
 ## 18. API Keys & Services Used
 
-| Service | Purpose | Cost | Rate Limits |
-|---------|---------|------|-------------|
-| **Groq** | Primary LLM (Llama 3.3 70B) | FREE | 30 req/min |
-| **Anthropic (Claude)** | Smart-tier LLM (probability estimation) | ~$20/mo | 1000 req/min |
-| **GNews** | News API | FREE | 100 req/day |
-| **Alchemy** | Polygon RPC (blockchain reads) | FREE tier | 300M CU/mo |
-| **Telegram** | Bot API | FREE | 30 msg/sec |
-| **Polymarket CLOB** | Trading API | FREE | Generous limits |
-| **RSS Feeds** | News (13 feeds) | FREE | Unlimited |
+| Service                      | Purpose                                 | Cost      | Rate Limits     |
+| ---------------------------- | --------------------------------------- | --------- | --------------- |
+| **Groq**               | Primary LLM (Llama 3.3 70B)             | FREE      | 30 req/min      |
+| **Anthropic (Claude)** | Smart-tier LLM (probability estimation) | ~$20/mo   | 1000 req/min    |
+| **GNews**              | News API                                | FREE      | 100 req/day     |
+| **Alchemy**            | Polygon RPC (blockchain reads)          | FREE tier | 300M CU/mo      |
+| **Telegram**           | Bot API                                 | FREE      | 30 msg/sec      |
+| **Polymarket CLOB**    | Trading API                             | FREE      | Generous limits |
+| **RSS Feeds**          | News (13 feeds)                         | FREE      | Unlimited       |
 
 ### Total Monthly Cost: ~$20 (Claude only)
 
@@ -684,15 +702,15 @@ If you remove `ANTHROPIC_API_KEY` and set `LLM_FALLBACK_PROVIDER=groq`, the bot 
 
 Located in `scripts/`:
 
-| Script | What It Does | How to Run |
-|--------|-------------|------------|
-| `check_balance.py` | Shows your USDC balance on Polygon | `python scripts/check_balance.py` |
-| `scan_markets.py` | Lists active Polymarket markets | `python scripts/scan_markets.py` |
-| `paper_trade.py` | Runs a quick paper trading cycle | `python scripts/paper_trade.py` |
-| `backtest.py` | Backtests strategies on historical data | `python scripts/backtest.py` |
-| `debug_api.py` | Tests Polymarket API connectivity | `python scripts/debug_api.py` |
-| `get_chat_id.py` | Finds your Telegram chat ID | `python scripts/get_chat_id.py` |
-| `verify_imports.py` | Checks all Python imports work | `python scripts/verify_imports.py` |
+| Script                | What It Does                            | How to Run                           |
+| --------------------- | --------------------------------------- | ------------------------------------ |
+| `check_balance.py`  | Shows your USDC balance on Polygon      | `python scripts/check_balance.py`  |
+| `scan_markets.py`   | Lists active Polymarket markets         | `python scripts/scan_markets.py`   |
+| `paper_trade.py`    | Runs a quick paper trading cycle        | `python scripts/paper_trade.py`    |
+| `backtest.py`       | Backtests strategies on historical data | `python scripts/backtest.py`       |
+| `debug_api.py`      | Tests Polymarket API connectivity       | `python scripts/debug_api.py`      |
+| `get_chat_id.py`    | Finds your Telegram chat ID             | `python scripts/get_chat_id.py`    |
+| `verify_imports.py` | Checks all Python imports work          | `python scripts/verify_imports.py` |
 
 ---
 
@@ -700,18 +718,19 @@ Located in `scripts/`:
 
 ### Running Costs
 
-| Component | Monthly Cost |
-|-----------|-------------|
-| Groq (Llama 3.3 70B) | **FREE** |
-| Telegram Bot API | **FREE** |
-| RSS Feeds (13 feeds) | **FREE** |
-| GNews API | **FREE** (100 req/day) |
-| Alchemy RPC | **FREE** tier |
-| Claude Sonnet (critical decisions) | **~$20** |
-| Railway hosting | **~$5** |
-| **Total** | **~$25/mo** |
+| Component                          | Monthly Cost                 |
+| ---------------------------------- | ---------------------------- |
+| Groq (Llama 3.3 70B)               | **FREE**               |
+| Telegram Bot API                   | **FREE**               |
+| RSS Feeds (13 feeds)               | **FREE**               |
+| GNews API                          | **FREE** (100 req/day) |
+| Alchemy RPC                        | **FREE** tier          |
+| Claude Sonnet (critical decisions) | **~$20**               |
+| Railway hosting                    | **~$5**                |
+| **Total**                    | **~$25/mo**            |
 
 ### One-Time Costs
+
 - Polygon gas for approvals: ~$0.01
 - USDC deposit to Polymarket: Your trading capital
 
@@ -767,5 +786,120 @@ GITHUB:      github.com/Ayomisco/sabibot
 ```
 
 ---
+
+
+
+### 1. "Is the /how guide for me or for people?"
+
+**Before:** It was personal (showed YOUR wallet, YOUR env var settings). **Now:** I rewrote it to be shareable. The `/how` command now explains SabiBot to anyone — what it is, how it works, how to set up, how it earns money. You can screenshot it and share online. The button version ([_send_how](vscode-file://vscode-app/Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/code/electron-browser/workbench/workbench.html)) is also generic now.
+
+### 2. "I want to start with $5-10 bets, then sell subscriptions"
+
+**Done.** I lowered the risk settings to:
+
+* Max $10 per trade
+* Max $100 total exposure
+* Half Kelly sizing (naturally produces $5-10 bets)
+* Min 5% edge threshold (more opportunities found)
+
+ **For the subscription model (FUTURE)** , here's the roadmap:
+
+**Phase 1 (Now):** You test with your own money. Prove it works. Track win rate.
+
+**Phase 2 (After proof):** Build a multi-user version:
+
+* Each subscriber gets a **license token** (random key like `SABI-XXXX-XXXX`)
+* They message the bot with `/activate SABI-XXXX-XXXX`
+* Bot checks the token against a database
+* Each user provides their OWN wallet private key
+* Bot trades with THEIR wallet, THEIR money
+* You charge monthly subscription ($20-50/month)
+* Revenue: subscription fees + builder fees from every trade ALL subscribers place
+
+**Phase 3:** Scale — build a website, Stripe/crypto payments, dashboard. This is where SabiMarket + SabiBot connect.
+
+I'll build Phase 2 when you're ready. First, let's prove the bot makes money.
+
+### 3. "Do I add money to MetaMask Polygon wallet then bet?"
+
+**YES, but you don't bet manually. The bot bets FOR you.** Here's exactly what to do:
+
+1. Open **MetaMask** → Switch to **Polygon network**
+2. Your wallet: `0xE5978059...442E69`
+3. Buy **USDC** on Coinbase/Binance
+4. **Withdraw USDC** to your MetaMask address **on Polygon network** (NOT Ethereum!)
+5. Go to **polymarket.com** → Connect MetaMask → **Deposit USDC** (this approves contracts)
+6. The bot is now in **LIVE mode** and will trade automatically
+
+**CRITICAL:** You MUST deposit on polymarket.com first (even $1) to approve the smart contracts. Without this step, the bot's orders will be rejected.
+
+### 4. "How will others use the bot?"
+
+Right now it's **single-user** (only you). For others to use it:
+
+**Option A (Easy, Now):** Share the bot as open-source. Others clone it, set up their own Railway instance with their own wallet. You earn nothing.
+
+**Option B (Subscription, Future):** Build the multi-user version where:
+
+* One Telegram bot serves many users
+* Each user activates with a paid license key
+* Bot manages separate wallets per user
+* You earn: subscription fee + builder fees from all their trades
+
+**Option C (Signal Service, Cheapest):** Don't give them the bot. Just share the signals. Create a public Telegram channel where the bot posts its trade signals. Users place trades manually on polymarket.com. You charge for channel access.
+
+### 5. "How does trading mode work? Paper vs Live?"
+
+**PAPER mode** (what you were on):
+
+* Bot runs the full pipeline: scan news → AI analysis → match markets → calculate edge
+* But when it "trades," it just logs a fake trade in the database
+* No real money moves, no CLOB orders placed
+* You can see paper trades via [/trades](vscode-file://vscode-app/Applications/Visual%20Studio%20Code.app/Contents/Resources/app/out/vs/code/electron-browser/workbench/workbench.html)
+
+**LIVE mode** (what you're on NOW):
+
+* Same pipeline, but when the bot decides to trade, it places **REAL orders** on Polymarket's CLOB
+* Your wallet's USDC is used to buy/sell positions
+* Real money, real profit, real risk
+* Every trade notification you get = real money moved
+
+**I've already switched you to LIVE mode.** Once you fund your wallet and approve contracts on polymarket.com, the bot will start trading automatically.
+
+### 6. "GNews 100 req/day — how to maximize?"
+
+**Done.** I implemented smart rate limiting:
+
+* GNews now only called every **15 minutes** (instead of every 60 seconds)
+* That's 96 calls/day (under 100 limit)
+* It **rotates through topics** each call:
+  1. General headlines
+  2. Crypto/Bitcoin/Ethereum search
+  3. Weather/climate/hurricane search
+  4. Sports/NBA/NFL search
+  5. Business headlines
+  6. Politics/election search
+  7. ...repeat
+
+This covers all Polymarket categories and stays within your budget. RSS feeds (13 total, unlimited) still run every 60 seconds for breaking news.
+
+### 7. "Weather predictions? Crypto predictions? More categories?"
+
+**Done.** I added:
+
+**New RSS feeds:** Decrypt (crypto), CNBC (finance), BBC Sport, Variety (entertainment) — 13 feeds total
+
+**GNews rotating searches:** Now explicitly searches for crypto, weather/climate, sports, politics, business, and general news.
+
+**How Polymarket categories map:**
+
+* Politics → Reuters, AP, BBC, Politico, The Hill, GNews
+* Crypto → CoinDesk, CoinTelegraph, Decrypt, GNews crypto search
+* Sports → ESPN, BBC Sport, GNews sports search
+* Weather/Climate → BBC World, GNews weather search
+* Entertainment → Variety, GNews general
+* Economics → CNBC, GNews business
+
+The bot now covers  **every major Polymarket category** .
 
 *Built for SabiMarkets by SabiBot Engine v1.0*

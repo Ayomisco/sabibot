@@ -27,7 +27,7 @@ log = get_logger("market_match")
 W_ENTITY = 0.30
 W_KEYWORD = 0.25
 W_SEMANTIC = 0.45
-MATCH_THRESHOLD = 0.35
+MATCH_THRESHOLD = 0.25  # Lowered from 0.35 — was filtering out real matches
 
 # Common words to exclude from keyword matching
 STOP_WORDS = frozenset({

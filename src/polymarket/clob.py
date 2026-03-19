@@ -126,7 +126,8 @@ class CLOBClient:
 
             # create_order signs the order; post_order sends it to CLOB
             signed_order = self.client.create_order(order_args, options)
-            resp = self.client.post_order(signed_order, orderType=OrderType.GTC)
+            resp = self.client.post_order(
+                signed_order, orderType=OrderType.GTC)
 
             order_id = resp.get("orderID", "")
             log.info(

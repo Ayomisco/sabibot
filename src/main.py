@@ -19,7 +19,8 @@ import signal
 import sys
 
 from src.config import settings
-from src.db.database import init_db
+from src.db.database import async_session, init_db
+from src.db.models import Signal
 from src.execution.order_manager import order_manager
 from src.execution.portfolio import portfolio
 from src.execution.risk_manager import risk_manager
@@ -81,9 +82,10 @@ async def news_scan_cycle() -> None:
 
         # 3. Analyze each news item
         all_proposals: list[TradeProposal] = []
+        signals_this_cycle: list[Signal] = []
 
-        # Cap at 5 items per cycle to limit LLM calls
-        for news_item in new_items[:5]:
+        # Process up to 10 items per cycle (was 5 — more coverage)
+        for news_item in new_items[:10]:
             opportunities = await analyze_news_item(
                 headline=news_item.title,
                 body=news_item.summary,
@@ -94,12 +96,21 @@ async def news_scan_cycle() -> None:
             if not opportunities:
                 continue
 
-            # 4. Build aggregated signals for matched markets
+            # 4. Build aggregated signals + persist to DB
             for opp in opportunities:
                 cid = opp.market.condition_id
                 market_price = opp.market.outcome_prices.get("Yes", 0.5)
                 agg = aggregate_signals([opp.signal], market_price)
                 _signals_cache[cid] = agg
+                signals_this_cycle.append(opp.signal)
+
+        # Persist all new signals to database
+        if signals_this_cycle:
+            async with async_session() as session:
+                for sig in signals_this_cycle:
+                    session.add(sig)
+                await session.commit()
+            log.info("signals_saved", count=len(signals_this_cycle))
 
         # 5. Run all strategies with current signals
         for strategy in STRATEGIES:
@@ -180,6 +191,35 @@ async def run() -> None:
 
     # Fetch initial market data
     await _refresh_markets()
+
+    # ── Balance check: warn if on-chain USDC is zero ─────────────
+    if settings.is_live:
+        try:
+            from web3 import Web3
+            from web3.middleware import ExtraDataToPOAMiddleware
+            USDC_CONTRACT = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+            USDC_ABI = [{"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]
+            w3 = Web3(Web3.HTTPProvider(settings.polygon_rpc_url))
+            w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+            usdc = w3.eth.contract(address=Web3.to_checksum_address(USDC_CONTRACT), abi=USDC_ABI)
+            raw_balance = usdc.functions.balanceOf(Web3.to_checksum_address(settings.polygon_wallet_address)).call()
+            usdc_balance = raw_balance / 1_000_000  # 6 decimals
+            if usdc_balance < 1.0:
+                warn_msg = (
+                    f"⚠️ LIVE MODE but on-chain USDC balance is ${usdc_balance:.2f}!\n\n"
+                    f"Your $11 is likely in Polymarket's Classic (custodial) balance.\n"
+                    f"The bot trades using on-chain USDC in wallet:\n"
+                    f"{settings.polygon_wallet_address}\n\n"
+                    f"To fix: Go to polymarket.com → Portfolio → Withdraw → "
+                    f"choose 'Crypto' → send USDC to your wallet address above.\n"
+                    f"OR deposit USDC directly to that wallet address via Polygon."
+                )
+                log.warning("live_mode_zero_usdc", balance=usdc_balance)
+                await send_telegram(warn_msg, AlertLevel.WARNING)
+            else:
+                log.info("usdc_balance_ok", usdc=f"${usdc_balance:.2f}")
+        except Exception as exc:
+            log.warning("balance_check_failed", error=str(exc))
 
     # Schedule periodic tasks
     sched.add_interval_job(

@@ -53,8 +53,9 @@ async def analyze_news_item(
     # Step 1: Sentiment analysis
     sentiment = await analyze_sentiment(headline, body)
 
-    # Skip low-magnitude news — not worth the LLM calls
-    if sentiment.magnitude < 0.2:
+    # Skip near-zero magnitude news — not worth the LLM calls.
+    # Threshold lowered: 0.05 catches most real news (0.2 was too aggressive).
+    if sentiment.magnitude < 0.05:
         log.debug("news_too_low_magnitude",
                   headline=headline[:60], magnitude=sentiment.magnitude)
         return []

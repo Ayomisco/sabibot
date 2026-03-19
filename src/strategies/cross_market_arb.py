@@ -29,9 +29,15 @@ from src.utils.logger import get_logger
 log = get_logger("strategy.cross_market")
 
 # Minimum similarity to consider markets "related"
-CORRELATION_THRESHOLD = 0.75
+# High threshold to avoid false positives (e.g. "Nebraska Senate" vs "Senate")
+CORRELATION_THRESHOLD = 0.88
 # Minimum price discrepancy to trade
-MIN_DISCREPANCY = 0.06
+MIN_DISCREPANCY = 0.08
+# Both sides must be in a meaningful probability range (not longshots vs favourites)
+MIN_PRICE_FLOOR = 0.15
+MAX_PRICE_CEILING = 0.85
+# Minimum 24h volume on both markets (illiquid markets = fake price gaps)
+MIN_VOLUME_USD = 500.0
 
 
 class CrossMarketArbStrategy(BaseStrategy):
@@ -82,6 +88,20 @@ class CrossMarketArbStrategy(BaseStrategy):
                 # Found correlated markets — check for price discrepancy
                 p1 = m1.outcome_prices.get("Yes", 0.5)
                 p2 = m2.outcome_prices.get("Yes", 0.5)
+
+                # ── Safety filters ───────────────────────────────────────────
+                # Reject longshot/near-certain markets: real arb only exists
+                # when both markets are in the 15%-85% range. A 3¢ vs 50¢
+                # divergence is different questions, not mispricing.
+                if not (MIN_PRICE_FLOOR <= p1 <= MAX_PRICE_CEILING):
+                    continue
+                if not (MIN_PRICE_FLOOR <= p2 <= MAX_PRICE_CEILING):
+                    continue
+
+                # Reject illiquid markets — thin books have fake spread
+                if m1.volume_24h < MIN_VOLUME_USD or m2.volume_24h < MIN_VOLUME_USD:
+                    continue
+
                 discrepancy = abs(p1 - p2)
 
                 if discrepancy < MIN_DISCREPANCY:
