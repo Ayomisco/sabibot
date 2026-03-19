@@ -85,13 +85,16 @@ class PolymarketClient:
         """Paginate through all active tradeable markets."""
         all_markets: list[Market] = []
         cursor: str | None = None
+        empty_streak = 0
 
         while len(all_markets) < max_markets:
             batch, cursor = await self.get_markets(limit=100, next_cursor=cursor)
             if not batch:
-                if cursor:
-                    continue  # Empty batch but more pages
-                break
+                empty_streak += 1
+                if empty_streak >= 3 or not cursor:
+                    break  # Stop on repeated empty pages or no cursor (was: infinite loop)
+                continue
+            empty_streak = 0
             all_markets.extend(batch)
             if not cursor:
                 break

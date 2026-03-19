@@ -61,8 +61,18 @@ _signals_cache: dict = {}
 async def _refresh_markets() -> None:
     """Fetch active markets and update cache."""
     global _markets_cache
-    _markets_cache = await polymarket.get_all_active_markets(max_markets=300)
-    log.info("markets_refreshed", count=len(_markets_cache))
+    try:
+        markets = await asyncio.wait_for(
+            polymarket.get_all_active_markets(max_markets=300),
+            timeout=25.0,
+        )
+        _markets_cache = markets
+        log.info("markets_refreshed", count=len(_markets_cache))
+    except asyncio.TimeoutError:
+        log.error("markets_refresh_timeout", cached=len(_markets_cache))
+        await send_telegram("Market refresh timed out — using cached data", AlertLevel.WARNING)
+    except Exception as exc:
+        log.error("markets_refresh_error", error=str(exc))
 
 
 async def news_scan_cycle() -> None:

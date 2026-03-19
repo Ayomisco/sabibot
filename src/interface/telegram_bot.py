@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, BotCommand, MenuButtonCommands
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -56,31 +56,35 @@ def _authorized(func):
 @_authorized
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Welcome message with interactive menu."""
+    from src.main import _markets_cache, _signals_cache
+    market_count = len(_markets_cache)
+    signal_count = len(_signals_cache)
+    status_line = (
+        f"Markets: {market_count} loaded | Signals: {signal_count}"
+        if market_count else "Markets: loading..."
+    )
+
     msg = (
-        "Welcome to SabiBot!\n"
-        "Your autonomous Polymarket trading agent.\n\n"
-
-        "I scan news 24/7, analyze markets using AI, "
-        "and execute trades automatically on Polymarket.\n\n"
-
+        "SabiBot\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "Autonomous Polymarket trading agent\n\n"
         f"Mode: {settings.trading_mode.value.upper()}\n"
-        f"AI: {settings.llm_primary_provider.value.upper()}\n\n"
-
-        "Quick start:\n"
-        "/guide - How the bot works (A to Z)\n"
-        "/how - How to fund & start earning\n"
-        "/status - Check portfolio\n"
-        "/help - All commands"
+        f"{status_line}\n\n"
+        "Tap a button below or use the Menu button at the bottom of the chat."
     )
 
     keyboard = [
         [
-            InlineKeyboardButton("How It Works", callback_data="guide"),
-            InlineKeyboardButton("How To Fund", callback_data="how"),
-        ],
-        [
             InlineKeyboardButton("Portfolio Status", callback_data="status"),
             InlineKeyboardButton("View Markets", callback_data="markets"),
+        ],
+        [
+            InlineKeyboardButton("Active Signals", callback_data="signals"),
+            InlineKeyboardButton("Open Trades", callback_data="trades"),
+        ],
+        [
+            InlineKeyboardButton("How It Works", callback_data="guide"),
+            InlineKeyboardButton("How To Fund", callback_data="how"),
         ],
         [
             InlineKeyboardButton("All Commands", callback_data="help"),
@@ -658,6 +662,22 @@ async def start_telegram_bot() -> Application | None:
     await app.initialize()
     await app.start()
     await app.updater.start_polling(drop_pending_updates=True)
+
+    # Register commands → shows the blue "Menu" button in Telegram clients
+    commands = [
+        BotCommand("start",   "Menu & quick start"),
+        BotCommand("status",  "Portfolio, P&L, risk"),
+        BotCommand("markets", "Top watched markets"),
+        BotCommand("signals", "Active trading signals"),
+        BotCommand("trades",  "Open positions"),
+        BotCommand("guide",   "How SabiBot works A-Z"),
+        BotCommand("how",     "How to fund & earn"),
+        BotCommand("pause",   "Pause trading"),
+        BotCommand("resume",  "Resume trading"),
+        BotCommand("kill",    "Emergency stop"),
+    ]
+    await app.bot.set_my_commands(commands)
+    await app.bot.set_chat_menu_button(menu_button=MenuButtonCommands())
 
     log.info("telegram_bot_started")
     return app
