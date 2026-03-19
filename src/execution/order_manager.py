@@ -102,6 +102,8 @@ class OrderManager:
             side="BUY",
             price=proposal.max_price,
             size=shares,
+            neg_risk=getattr(proposal.market, "neg_risk", True),
+            tick_size=getattr(proposal.market, "minimum_tick_size", "0.01"),
         )
 
         status = TradeStatus.PENDING if result.success else TradeStatus.FAILED

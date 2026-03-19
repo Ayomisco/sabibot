@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from py_clob_client.client import ClobClient
-from py_clob_client.clob_types import ApiCreds, OrderArgs, OrderType
+from py_clob_client.clob_types import ApiCreds, OrderArgs, OrderType, PartialCreateOrderOptions
 
 from src.config import settings
 from src.polymarket.constants import (
@@ -94,6 +94,7 @@ class CLOBClient:
         price: float,
         size: float,
         neg_risk: bool = True,
+        tick_size: str = "0.01",
     ) -> OrderResult:
         """
         Place a limit order on the CLOB.
@@ -104,23 +105,28 @@ class CLOBClient:
             price: Limit price (0.01 to 0.99)
             size: Number of shares
             neg_risk: Whether this market uses the NegRisk exchange (most binary markets do)
+            tick_size: Market tick size (from market metadata)
         """
         try:
+            # Builder fee: 1% (100 bps) earns revenue on every trade
+            fee_bps = 100 if settings.builder_wallet_address else 0
+
             order_args = OrderArgs(
                 token_id=token_id,
                 price=price,
                 size=size,
                 side=BUY if side == "BUY" else SELL,
+                fee_rate_bps=fee_bps,
             )
 
-            signed_order = self.client.create_and_sign_order(order_args)
+            options = PartialCreateOrderOptions(
+                tick_size=tick_size,
+                neg_risk=neg_risk,
+            )
 
-            # Attach builder fee if configured — earns revenue on every trade
-            order_kwargs: dict[str, Any] = {"order_type": OrderType.GTC}
-            if settings.builder_wallet_address:
-                order_kwargs["fee_rate_bps"] = 100  # 1% builder fee
-
-            resp = self.client.post_order(signed_order, **order_kwargs)
+            # create_order signs the order; post_order sends it to CLOB
+            signed_order = self.client.create_order(order_args, options)
+            resp = self.client.post_order(signed_order, orderType=OrderType.GTC)
 
             order_id = resp.get("orderID", "")
             log.info(
@@ -130,6 +136,7 @@ class CLOBClient:
                 side=side,
                 price=price,
                 size=size,
+                neg_risk=neg_risk,
             )
             return OrderResult(success=True, order_id=order_id, raw=resp)
 
