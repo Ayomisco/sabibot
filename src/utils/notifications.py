@@ -66,16 +66,25 @@ def send_telegram_sync(message: str, level: AlertLevel = AlertLevel.INFO) -> Non
 
 async def notify_trade(
     action: str, market: str, side: str, amount: float, price: float, edge: float,
-    condition_id: str = "",
+    condition_id: str = "", order_id: str = "", status: str = "pending"
 ) -> None:
+    # Build clickable Polymarket link with market ID
+    market_link = f"https://polymarket.com/market/{condition_id}" if condition_id else "https://polymarket.com/"
+    
     msg = (
+        f"💰 SabiBot\n"
         f"{action}\n"
         f"Market: {market[:80]}\n"
-        f"Side: {side} @ ${price:.3f}\n"
+        f"Side: {side}\n"
+        f"Price: ${price:.3f}\n"
         f"Size: ${amount:.2f}\n"
         f"Edge: {edge:+.1%}\n"
-        f"View: https://polymarket.com/"
+        f"Status: {status}\n"
+        f"Link: {market_link}"
     )
+    if order_id:
+        msg += f"\nOrder ID: {order_id[:16]}..."
+    
     await send_telegram(msg, AlertLevel.TRADE)
 
 

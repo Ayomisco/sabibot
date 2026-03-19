@@ -89,6 +89,8 @@ class OrderManager:
                     price=proposal.market_price,
                     edge=proposal.edge,
                     condition_id=proposal.condition_id,
+                    order_id=trade.order_id or "",
+                    status=trade.status.value,
                 )
 
         return executed_trades

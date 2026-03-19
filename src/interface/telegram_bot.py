@@ -301,8 +301,6 @@ async def cmd_trades(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         )
 
     await update.message.reply_text("\n".join(lines))
-
-
 # ── /markets — Top watched markets ───────────────────────────────
 
 @_authorized
