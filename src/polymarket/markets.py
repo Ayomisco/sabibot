@@ -37,7 +37,7 @@ else:
     W_KEYWORD = 0.40
     W_SEMANTIC = 0.15
 
-MATCH_THRESHOLD = 0.20  # Lowered from 0.25 — spaCy needs more room
+MATCH_THRESHOLD = 0.15  # Lowered — spaCy fallback scores are lower than OpenAI embeds
 
 # Common words to exclude from keyword matching
 STOP_WORDS = frozenset({
