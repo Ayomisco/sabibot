@@ -92,7 +92,7 @@ class OrderManager:
                     market_slug=getattr(proposal.market, "market_slug", ""),
                     order_id=trade.order_id or "",
                     status=trade.status.value,
-                    error=trade.notes if trade.status.value == "failed" else "",
+                    error=trade.notes if trade.status == TradeStatus.FAILED else "",
                 )
 
         return executed_trades

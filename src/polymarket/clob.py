@@ -202,17 +202,29 @@ class CLOBClient:
                 fee_rate_bps=fee_bps,
             )
 
+            # tick_size must be a string (e.g. "0.01") for the py-clob-client
+            tick_str = str(tick_size) if not isinstance(tick_size, str) else tick_size
+
             options = PartialCreateOrderOptions(
-                tick_size=tick_size,
+                tick_size=tick_str,
                 neg_risk=neg_risk,
             )
 
-            # create_order signs the order; post_order sends it to CLOB
-            signed_order = self.client.create_order(order_args, options)
-            resp = self.client.post_order(
-                signed_order, orderType=OrderType.GTC)
+            # create_order and post_order are synchronous — run in thread
+            signed_order = await asyncio.to_thread(
+                self.client.create_order, order_args, options
+            )
+            resp = await asyncio.to_thread(
+                self.client.post_order, signed_order, OrderType.GTC
+            )
 
-            order_id = resp.get("orderID", "")
+            # CLOB can reject orders with HTTP 200 but errorMsg in body
+            if isinstance(resp, dict):
+                error_msg = resp.get("errorMsg", "") or resp.get("error", "")
+                if error_msg:
+                    raise ValueError(f"CLOB rejected: {error_msg}")
+
+            order_id = resp.get("orderID", "") if isinstance(resp, dict) else ""
             log.info(
                 "order_placed",
                 order_id=order_id,
@@ -221,13 +233,15 @@ class CLOBClient:
                 price=price,
                 size=size,
                 neg_risk=neg_risk,
+                tick=tick_str,
             )
             return OrderResult(success=True, order_id=order_id, raw=resp)
 
         except Exception as exc:
-            log.error("order_failed", error=str(exc),
-                      side=side, price=price, size=size)
-            return OrderResult(success=False, error=str(exc))
+            err = str(exc) or type(exc).__name__
+            log.error("order_failed", error=err, error_type=type(exc).__name__,
+                      side=side, price=price, size=size, token_id=token_id[:20])
+            return OrderResult(success=False, error=err)
 
     async def cancel_order(self, order_id: str) -> bool:
         """Cancel an open order."""
