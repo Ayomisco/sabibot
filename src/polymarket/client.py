@@ -66,12 +66,12 @@ class PolymarketClient:
         data = resp.json()
         raw_markets = data.get("data", [])
         cursor = data.get("next_cursor")
-        # Only return markets that are actively accepting orders
         markets = [
             self._parse_market(m)
             for m in raw_markets
             if m.get("condition_id") and m.get("accepting_orders")
         ]
+        log.info("market_raw_fetch", raw=len(raw_markets), accepted=len(markets), cursor=str(cursor)[:20] if cursor else "none")
         return markets, cursor if cursor != "LTE=" else None
 
     @with_retry(max_attempts=3, min_wait=1.0, retry_on=(httpx.HTTPError,))
@@ -90,17 +90,22 @@ class PolymarketClient:
         empty_streak = 0
         page = 0
 
+        log.info("market_fetch_start", max_markets=max_markets)
+
         while len(all_markets) < max_markets:
             try:
                 batch, cursor = await self.get_markets(limit=100, next_cursor=cursor)
                 page += 1
-                
+
+                log.info("market_page_fetched", page=page, batch_size=len(batch), cursor=str(cursor)[:20] if cursor else "none")
+
                 if not batch:
                     empty_streak += 1
+                    log.warning("market_page_empty", page=page, streak=empty_streak, cursor=str(cursor)[:20] if cursor else "none")
                     if empty_streak >= 3 or not cursor:
                         break
                     continue
-                    
+
                 empty_streak = 0
                 all_markets.extend(batch)
                 self.last_error = ""  # Clear on success

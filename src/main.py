@@ -61,32 +61,29 @@ _signals_cache: dict = {}
 async def _refresh_markets() -> None:
     """Fetch active markets and update cache. Retries up to 3x with backoff."""
     global _markets_cache
-    
+
     for attempt in range(1, 4):
         try:
-            markets = await asyncio.wait_for(
-                polymarket.get_all_active_markets(max_markets=300),
-                timeout=25.0,
-            )
+            # No hard timeout — Railway cold start can be slow.
+            # get_all_active_markets has its own internal timeout via httpx (30s).
+            markets = await polymarket.get_all_active_markets(max_markets=300)
             if markets:
                 _markets_cache = markets
                 log.info("markets_refreshed", count=len(_markets_cache))
                 return
             else:
                 log.warning("markets_empty_response", attempt=attempt)
-        except asyncio.TimeoutError:
-            log.error("markets_timeout", attempt=attempt)
-            if attempt < 3:
-                await asyncio.sleep(2 ** attempt)
+                if attempt < 3:
+                    await asyncio.sleep(5 * attempt)
         except Exception as exc:
-            log.error("markets_error", attempt=attempt, error=str(exc)[:80])
+            log.error("markets_error", attempt=attempt, error=str(exc)[:120])
             if attempt < 3:
-                await asyncio.sleep(2 ** attempt)
-    
+                await asyncio.sleep(5 * attempt)
+
     log.critical("markets_load_failed", cached=len(_markets_cache))
     if not _markets_cache:
         await send_telegram(
-            "⚠️ Markets failed to load (API unreachable?). Bot cannot trade.",
+            "Markets failed to load (API unreachable?). Bot cannot trade.",
             AlertLevel.ERROR,
         )
 
@@ -97,7 +94,15 @@ async def news_scan_cycle() -> None:
         return
 
     try:
-        # 1. Scan for new news items
+        # 1. Always ensure markets are loaded first
+        if not _markets_cache:
+            log.info("markets_empty_before_scan_reloading")
+            await _refresh_markets()
+            if not _markets_cache:
+                log.warning("markets_still_empty_skipping_scan")
+                return
+
+        # 2. Scan for new news items
         new_items = await scan_all_sources()
         if not new_items:
             log.debug("scan_cycle_no_new_news")
@@ -105,10 +110,6 @@ async def news_scan_cycle() -> None:
 
         log.info("scan_cycle_start", new_items=len(new_items),
                  markets=len(_markets_cache))
-
-        # 2. Ensure we have fresh market data
-        if not _markets_cache:
-            await _refresh_markets()
 
         # 3. Analyze each news item
         all_proposals: list[TradeProposal] = []
@@ -213,12 +214,21 @@ async def run() -> None:
     # Initialize subsystems
     await init_db()
 
-    # Fetch markets FIRST (no auth needed, most important thing)
+    # Fetch markets FIRST — retry every 10s for up to 90s if needed
     await _refresh_markets()
     if not _markets_cache:
-        log.warning("startup_markets_failed")
-    else:
+        log.warning("startup_markets_failed_retrying")
+        for retry in range(1, 7):
+            await asyncio.sleep(10)
+            log.info("startup_markets_retry", attempt=retry)
+            await _refresh_markets()
+            if _markets_cache:
+                break
+
+    if _markets_cache:
         log.info("startup_markets_loaded", count=len(_markets_cache))
+    else:
+        log.error("startup_markets_all_attempts_failed")
 
     # CLOB auth (can be slow/fail — don't block other startup)
     if settings.is_live and settings.polygon_private_key:
