@@ -474,32 +474,51 @@ async def cmd_debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 @_authorized
 async def cmd_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Manually trigger market refresh and report results."""
+    """Manually trigger market refresh with step-by-step diagnostics."""
+    import httpx as _httpx
     from src.main import _refresh_markets, _markets_cache
 
-    await update.message.reply_text("Refreshing markets... (this may take 15-30s)")
+    await update.message.reply_text("Running market diagnostics...")
 
-    before = len(_markets_cache)
-    await _refresh_markets()
-    after = len(_markets_cache)
+    lines = ["Market Refresh Diagnostics\n" + "━" * 28]
 
+    # Step 1: raw API call (same as debug test)
+    try:
+        async with _httpx.AsyncClient(timeout=15.0) as c:
+            r = await c.get("https://clob.polymarket.com/sampling-markets", params={"limit": 5})
+            raw_data = r.json().get("data", [])
+            lines.append(f"\nStep 1 — Raw API call")
+            lines.append(f"  Status : {r.status_code}")
+            lines.append(f"  Raw mkts: {len(raw_data)}")
+            if raw_data:
+                m0 = raw_data[0]
+                lines.append(f"  First  : {m0.get('question', '?')[:45]}")
+                lines.append(f"  cond_id: {'yes' if m0.get('condition_id') else 'MISSING'}")
+                lines.append(f"  accp_ord: {m0.get('accepting_orders', 'MISSING')}")
+                accepting = sum(1 for m in raw_data if m.get("accepting_orders"))
+                lines.append(f"  Accepting orders (of {len(raw_data)}): {accepting}")
+    except Exception as e:
+        lines.append(f"\nStep 1 FAILED: {e}")
+
+    # Step 2: full pipeline refresh
+    from src.main import _markets_cache as cache_before_ref
+    before = len(cache_before_ref)
+    try:
+        await _refresh_markets()
+    except Exception as e:
+        lines.append(f"\nStep 2 _refresh_markets error: {e}")
+
+    from src.main import _markets_cache as cache_after_ref
+    after = len(cache_after_ref)
     from src.polymarket.client import polymarket
-    err = polymarket.last_error
-
+    lines.append(f"\nStep 2 — Pipeline refresh")
+    lines.append(f"  Before : {before}")
+    lines.append(f"  After  : {after}")
+    lines.append(f"  Last err: {polymarket.last_error or 'none'}")
     if after > 0:
-        msg = (
-            f"Markets refreshed!\n"
-            f"Before: {before}\n"
-            f"After: {after}\n"
-            f"Sample: {_markets_cache[0].question[:50]}"
-        )
-    else:
-        msg = (
-            f"Market refresh FAILED\n"
-            f"Cache still: {after}\n"
-            f"Error: {err or 'unknown'}"
-        )
-    await update.message.reply_text(msg)
+        lines.append(f"  Sample : {cache_after_ref[0].question[:45]}")
+
+    await update.message.reply_text("\n".join(lines))
 
 
 # ── Callback query handler (button presses) ─────────────────────
