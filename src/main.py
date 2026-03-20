@@ -189,6 +189,22 @@ async def market_refresh_cycle() -> None:
         log.error("market_refresh_error", error=str(exc))
 
 
+async def _market_retry_background() -> None:
+    """Background safety-net: retry market load every 30s while cache is empty.
+
+    Runs independently of APScheduler so it works even if the scheduler
+    has trouble with async jobs on certain Railway builds.
+    Stops retrying once markets are loaded (they are kept fresh by the
+    scheduled market_refresh_cycle afterwards).
+    """
+    while not _markets_cache:
+        await asyncio.sleep(30)
+        if not _markets_cache:
+            log.info("background_market_retry_attempt")
+            await _refresh_markets()
+    log.info("background_market_retry_done", count=len(_markets_cache))
+
+
 async def portfolio_cycle() -> None:
     """Periodic portfolio snapshot and risk update."""
     try:
@@ -271,6 +287,14 @@ async def run() -> None:
         except Exception as exc:
             log.warning("balance_check_failed", error=str(exc))
 
+    # Alert now if markets still empty (Telegram bot is running at this point)
+    if not _markets_cache:
+        await send_telegram(
+            "Markets failed to load at startup.\n"
+            "Run /refresh to reload — bot cannot trade until markets are available.",
+            AlertLevel.WARNING,
+        )
+
     # Schedule periodic tasks
     sched.add_interval_job(
         news_scan_cycle, settings.news_scan_interval_seconds, job_id="news_scan")
@@ -280,11 +304,18 @@ async def run() -> None:
         portfolio_cycle, settings.portfolio_rebalance_interval_seconds, job_id="portfolio")
     sched.start()
 
+    # Background safety-net: retry market load every 30s if still empty
+    if not _markets_cache:
+        asyncio.create_task(_market_retry_background())
+
+    startup_suffix = "\n⚠️ Run /refresh — markets not loaded." if not _markets_cache else ""
+    startup_level = AlertLevel.WARNING if not _markets_cache else AlertLevel.INFO
     await send_telegram(
         f"Bot started in {settings.trading_mode.value} mode\n"
         f"LLM: {settings.llm_primary_provider.value}\n"
-        f"Markets loaded: {len(_markets_cache)}",
-        AlertLevel.INFO,
+        f"Markets loaded: {len(_markets_cache)}"
+        + startup_suffix,
+        startup_level,
     )
 
     log.info("sabibot_running", markets=len(_markets_cache))
