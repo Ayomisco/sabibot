@@ -66,10 +66,12 @@ class PolymarketClient:
         data = resp.json()
         raw_markets = data.get("data", [])
         cursor = data.get("next_cursor")
+        # /sampling-markets only returns accepting-orders markets by design,
+        # so we don't filter on accepting_orders — the field may be absent.
         markets = [
             self._parse_market(m)
             for m in raw_markets
-            if m.get("condition_id") and m.get("accepting_orders")
+            if m.get("condition_id")
         ]
         log.info("market_raw_fetch", raw=len(raw_markets), accepted=len(markets), cursor=str(cursor)[:20] if cursor else "none")
         return markets, cursor if cursor != "LTE=" else None
