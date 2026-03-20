@@ -91,7 +91,7 @@ async def notify_trade(
     if order_id:
         msg += f"\nOrder ID: {order_id[:16]}..."
     if error:
-        msg += f"\nError: {error[:120]}"
+        msg += f"\nError: {error[:300]}"
 
     await send_telegram(msg, AlertLevel.TRADE)
 

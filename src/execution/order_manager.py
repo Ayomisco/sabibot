@@ -13,7 +13,7 @@ Responsibilities:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from src.config import settings
 from src.db.database import async_session
@@ -37,6 +37,9 @@ class OrderManager:
     ) -> None:
         self._clob = clob_client or clob
         self._risk = risk_mgr or risk_manager
+        # Cooldown maps: condition_id → timestamp of last trade attempt
+        self._pending_markets: dict[str, datetime] = {}  # has open PENDING order
+        self._failed_markets: dict[str, datetime] = {}   # recently failed
 
     async def execute_proposals(self, proposals: list[TradeProposal]) -> list[Trade]:
         """
@@ -48,7 +51,23 @@ class OrderManager:
         """
         executed_trades: list[Trade] = []
 
+        now = datetime.now(timezone.utc)
+
         for proposal in proposals:
+            cid = proposal.condition_id
+
+            # Skip markets with an existing pending order (30-min cooldown)
+            pending_since = self._pending_markets.get(cid)
+            if pending_since and now - pending_since < timedelta(minutes=30):
+                log.info("proposal_skipped_pending", market=proposal.market.question[:50])
+                continue
+
+            # Skip markets that recently failed (10-min cooldown)
+            failed_since = self._failed_markets.get(cid)
+            if failed_since and now - failed_since < timedelta(minutes=10):
+                log.info("proposal_skipped_failed_cooldown", market=proposal.market.question[:50])
+                continue
+
             risk_check = self._risk.check_proposal(proposal)
 
             if not risk_check.approved:
@@ -72,8 +91,14 @@ class OrderManager:
 
             if trade:
                 # Update risk tracking
-                self._risk.record_trade(proposal.condition_id, final_size)
+                self._risk.record_trade(cid, final_size)
                 executed_trades.append(trade)
+
+                # Update cooldown maps
+                if trade.status == TradeStatus.PENDING:
+                    self._pending_markets[cid] = now
+                elif trade.status == TradeStatus.FAILED:
+                    self._failed_markets[cid] = now
 
                 # Persist to database
                 async with async_session() as session:
@@ -101,6 +126,15 @@ class OrderManager:
         self, proposal: TradeProposal, size_usd: float, shares: float
     ) -> Trade | None:
         """Place a real order on the CLOB."""
+        # Enforce minimum order size (CLOB rejects orders below this threshold)
+        min_shares = getattr(proposal.market, "minimum_order_size", 5.0)
+        if shares < min_shares:
+            shares = min_shares
+            size_usd = shares * proposal.max_price
+            log.info("order_size_adjusted_to_minimum",
+                     market=proposal.market.question[:50],
+                     min_shares=min_shares, size_usd=f"${size_usd:.2f}")
+
         result = await self._clob.place_limit_order(
             token_id=proposal.token_id,
             side="BUY",
