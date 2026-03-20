@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
-from pydantic import Field
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,7 +45,17 @@ class Settings(BaseSettings):
     ollama_model: str = "llama3.1:8b"
 
     llm_primary_provider: LLMProvider = LLMProvider.GROQ
-    llm_fallback_provider: LLMProvider = LLMProvider.ANTHROPIC
+    llm_fallback_provider: LLMProvider = LLMProvider.NONE
+
+    @field_validator("llm_primary_provider", "llm_fallback_provider", mode="before")
+    @classmethod
+    def coerce_llm_provider(cls, v: Any) -> str:
+        """Accept valid provider names; fall back to 'none' for anything unrecognised.
+        Prevents a bad Railway env var from crashing the entire bot at startup."""
+        valid = {p.value for p in LLMProvider}
+        if isinstance(v, str) and v.lower() not in valid:
+            return LLMProvider.NONE.value
+        return v
 
     # ── Polymarket / Polygon ─────────────────────────────────────
     polygon_private_key: str = ""
