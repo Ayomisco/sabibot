@@ -27,6 +27,7 @@ class Market:
     question: str
     description: str = ""
     category: str = ""
+    market_slug: str = ""  # URL slug for polymarket.com/market/{slug}
     end_date: datetime | None = None
     outcome_prices: dict[str, float] = field(
         default_factory=dict)  # {"Yes": 0.65, "No": 0.35}
@@ -145,6 +146,7 @@ class PolymarketClient:
             question=raw.get("question", ""),
             description=raw.get("description", ""),
             category=raw.get("category", ""),
+            market_slug=raw.get("market_slug", ""),
             end_date=end_date,
             outcome_prices=outcome_prices,
             tokens=tokens,

@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from py_clob_client.client import ClobClient
-from py_clob_client.clob_types import ApiCreds, OrderArgs, OrderType, PartialCreateOrderOptions
+from py_clob_client.clob_types import ApiCreds, AssetType, BalanceAllowanceParams, OrderArgs, OrderType, PartialCreateOrderOptions
 
 from src.config import settings
 from src.polymarket.constants import (
@@ -99,6 +99,10 @@ class CLOBClient:
             eoa=settings.polygon_wallet_address[:10] + "..." if settings.polygon_wallet_address else "derived",
         )
 
+        # Ensure the CLOB has allowance to spend USDC.
+        # With proxy wallet (Magic Link), allowance must be set or orders fail.
+        await self._ensure_allowance(sig_type)
+
     @property
     def client(self) -> ClobClient:
         if self._client is None:
@@ -106,13 +110,58 @@ class CLOBClient:
                 "CLOBClient not initialized. Call initialize() first.")
         return self._client
 
-    async def get_balance(self) -> float:
-        """Return available USDC balance from Polymarket's CLOB (internal balance)."""
+    async def _ensure_allowance(self, sig_type: int) -> None:
+        """
+        Check USDC allowance; call update_balance_allowance if it is zero.
+        This is required for Magic Link (proxy wallet) accounts — without it
+        the CLOB cannot spend USDC and every order fails.
+        """
         try:
-            result = self.client.get_balance()
-            # result may be a dict or a float depending on library version
+            from py_clob_client.clob_types import AssetType, BalanceAllowanceParams
+            params = BalanceAllowanceParams(
+                asset_type=AssetType.COLLATERAL,
+                signature_type=sig_type,
+            )
+            result = await asyncio.to_thread(
+                self._client.get_balance_allowance, params
+            )
+            allowance = 0.0
+            balance = 0.0
             if isinstance(result, dict):
-                return float(result.get("balance", result.get("available", 0)))
+                raw_allow = float(result.get("allowance", 0))
+                raw_bal = float(result.get("balance", 0))
+                allowance = raw_allow / 1e6 if raw_allow > 1000 else raw_allow
+                balance = raw_bal / 1e6 if raw_bal > 1000 else raw_bal
+
+            log.info("clob_allowance_check", balance=f"${balance:.2f}", allowance=f"${allowance:.2f}")
+
+            if allowance == 0.0 and balance > 0:
+                log.info("clob_updating_allowance", msg="Allowance is 0 — calling update_balance_allowance")
+                await asyncio.to_thread(
+                    self._client.update_balance_allowance, params
+                )
+                log.info("clob_allowance_updated")
+            elif balance == 0.0:
+                log.warning("clob_zero_balance", msg="CLOB balance is $0.00 — deposit USDC on polymarket.com")
+        except Exception as exc:
+            log.warning("clob_allowance_check_failed", error=str(exc))
+
+    async def get_balance(self) -> float:
+        """Return available USDC balance from Polymarket's CLOB (collateral balance)."""
+        try:
+            params = BalanceAllowanceParams(
+                asset_type=AssetType.COLLATERAL,
+                signature_type=settings.clob_signature_type,
+            )
+            result = await asyncio.to_thread(
+                self.client.get_balance_allowance, params
+            )
+            # result is a dict with raw USDC amounts (6 decimals).
+            # e.g. {"balance": "11843111", ...} = $11.84
+            if isinstance(result, dict):
+                raw = float(result.get("balance", 0))
+                # Polymarket returns integer micro-USDC; values > 1000 are raw units
+                return raw / 1e6 if raw > 1000 else raw
             return float(result)
         except Exception as exc:
             log.warning("clob_balance_failed", error=str(exc))

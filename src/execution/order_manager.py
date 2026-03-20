@@ -89,8 +89,10 @@ class OrderManager:
                     price=proposal.market_price,
                     edge=proposal.edge,
                     condition_id=proposal.condition_id,
+                    market_slug=getattr(proposal.market, "market_slug", ""),
                     order_id=trade.order_id or "",
                     status=trade.status.value,
+                    error=trade.notes if trade.status.value == "failed" else "",
                 )
 
         return executed_trades
@@ -122,7 +124,7 @@ class OrderManager:
             confidence=proposal.confidence,
             status=status,
             order_id=result.order_id,
-            notes=proposal.reasoning[:500],
+            notes=result.error[:500] if not result.success else proposal.reasoning[:500],
         )
 
         if result.success:

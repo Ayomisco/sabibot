@@ -421,9 +421,9 @@ async def cmd_debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if clob_ok:
         try:
             bal = await clob.get_balance()
-            balance_str = f"${bal:.2f}"
+            balance_str = f"${bal:.2f}" if bal > 0 else "$0.00 (check USDC approved on Polymarket)"
         except Exception as e:
-            balance_str = f"ERR: {str(e)[:30]}"
+            balance_str = f"ERR: {str(e)[:60]}"
 
     # Last market fetch error
     last_mkt_err = polymarket.last_error or "none"
