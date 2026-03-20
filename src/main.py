@@ -115,8 +115,12 @@ async def news_scan_cycle() -> None:
         all_proposals: list[TradeProposal] = []
         signals_this_cycle: list[Signal] = []
 
-        # Process up to 10 items per cycle (was 5 — more coverage)
-        for news_item in new_items[:10]:
+        # Process up to 4 items per cycle — Groq free tier is ~30 req/min.
+        # Each item = 1 sentiment call + up to 3 probability calls = 4 calls max.
+        # 4 items × 4 calls = 16 calls per 45s cycle — well within rate limits.
+        for i, news_item in enumerate(new_items[:4]):
+            if i > 0:
+                await asyncio.sleep(3)  # ~3s gap between items keeps Groq under rate limit
             opportunities = await analyze_news_item(
                 headline=news_item.title,
                 body=news_item.summary,

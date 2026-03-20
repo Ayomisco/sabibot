@@ -90,12 +90,9 @@ class LLMGateway:
     # ── Provider resolution ──────────────────────────────────────
 
     def _resolve_provider(self, tier: ModelTier) -> LLMProvider:
-        if tier == ModelTier.SMART:
-            # Use Anthropic for smart-tier if available, else fall through to primary
-            if settings.anthropic_api_key:
-                return LLMProvider.ANTHROPIC
-            if settings.openai_api_key:
-                return LLMProvider.OPENAI
+        # Always use the configured primary provider (Groq by default).
+        # SMART tier only upgrades to Anthropic/OpenAI if explicitly set as primary.
+        # This prevents accidentally burning paid API credits for every scan cycle.
         return settings.llm_primary_provider
 
     def _resolve_fallback(self, failed: LLMProvider) -> LLMProvider:

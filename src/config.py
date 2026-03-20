@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     groq_model: str = "llama-3.3-70b-versatile"
 
     anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    anthropic_model: str = "claude-haiku-4-5-20251001"
 
     openai_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-small"
