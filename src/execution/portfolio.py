@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, func
 
+from src.config import settings
 from src.db.database import async_session
 from src.db.models import PortfolioSnapshot, Trade, TradeStatus
 from src.polymarket.client import polymarket
@@ -108,6 +109,15 @@ class PortfolioTracker:
         positions = await self.get_open_positions()
         positions_value = sum(p.current_price * p.shares for p in positions)
         unrealized = sum(p.unrealized_pnl for p in positions)
+
+        # In live mode, use the real CLOB balance as cash so the value
+        # reflects actual on-chain funds rather than the ephemeral DB.
+        if settings.is_live:
+            try:
+                from src.polymarket.clob import clob
+                initial_cash = await clob.get_balance()
+            except Exception as exc:
+                log.warning("portfolio_balance_fetch_failed", error=str(exc))
 
         # Realized P&L from closed trades
         async with async_session() as session:
