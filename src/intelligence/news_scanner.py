@@ -84,15 +84,9 @@ async def scan_all_sources() -> list[NewsItem]:
     if not urls:
         return []
 
-    # Only treat items seen in the last 24h as duplicates.
-    # Older items may be re-published with updates worth re-analyzing.
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     async with async_session() as session:
         existing = await session.execute(
-            select(NewsItem.url).where(
-                NewsItem.url.in_(urls),
-                NewsItem.created_at >= cutoff,
-            )
+            select(NewsItem.url).where(NewsItem.url.in_(urls))
         )
         existing_urls = {row[0] for row in existing.fetchall()}
 
