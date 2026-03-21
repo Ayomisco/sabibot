@@ -8,7 +8,9 @@ All providers expose the same interface: complete() and complete_json().
 
 from __future__ import annotations
 
+import asyncio
 import json
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -20,6 +22,19 @@ from src.utils.logger import get_logger
 from src.utils.retry import with_retry
 
 log = get_logger("llm")
+
+# Groq rate limiter — free tier is 30 RPM; enforce 2.5s gap → max 24 RPM.
+# Lock serializes calls; _groq_last_call tracks the timestamp of the last request.
+_groq_lock: asyncio.Lock | None = None
+_groq_last_call: float = 0.0
+_GROQ_MIN_GAP: float = 2.5  # seconds
+
+
+def _get_groq_lock() -> asyncio.Lock:
+    global _groq_lock
+    if _groq_lock is None:
+        _groq_lock = asyncio.Lock()
+    return _groq_lock
 
 
 class ModelTier(str, Enum):
@@ -123,26 +138,41 @@ class LLMGateway:
             case _:
                 raise ValueError(f"Unknown LLM provider: {provider}")
 
-    @with_retry(max_attempts=2, min_wait=2.0, retry_on=(httpx.HTTPError, httpx.TimeoutException))
+    @with_retry(max_attempts=2, min_wait=3.0, retry_on=(httpx.TimeoutException,))
     async def _call_groq(
         self, prompt: str, system: str, temperature: float, max_tokens: int
     ) -> LLMResponse:
-        messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
-        messages.append({"role": "user", "content": prompt})
+        global _groq_last_call
 
-        resp = await self._http.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {settings.groq_api_key}"},
-            json={
-                "model": settings.groq_model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            },
-        )
-        resp.raise_for_status()
+        # Serialize all Groq calls and enforce minimum gap to stay under 30 RPM
+        async with _get_groq_lock():
+            wait = _GROQ_MIN_GAP - (time.monotonic() - _groq_last_call)
+            if wait > 0:
+                await asyncio.sleep(wait)
+            _groq_last_call = time.monotonic()
+
+            messages = []
+            if system:
+                messages.append({"role": "system", "content": system})
+            messages.append({"role": "user", "content": prompt})
+
+            resp = await self._http.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {settings.groq_api_key}"},
+                json={
+                    "model": settings.groq_model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                },
+            )
+
+            if resp.status_code == 429:
+                # Rate limit hit despite the gate — surface as non-retryable
+                # so the LLM gateway falls back to a different provider
+                raise RuntimeError("Groq rate limited (429) — falling back")
+
+            resp.raise_for_status()
         data = resp.json()
         usage = data.get("usage", {})
 
