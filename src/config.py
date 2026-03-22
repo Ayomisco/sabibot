@@ -99,8 +99,8 @@ class Settings(BaseSettings):
 
     # ── Bot Behavior ─────────────────────────────────────────────
     trading_mode: TradingMode = TradingMode.PAPER
-    news_scan_interval_seconds: int = 60
-    market_analysis_interval_seconds: int = 300
+    news_scan_interval_seconds: int = 1800  # 30 minutes
+    market_analysis_interval_seconds: int = 1800  # 30 minutes
     portfolio_rebalance_interval_seconds: int = 3600
     log_level: str = "INFO"
 
