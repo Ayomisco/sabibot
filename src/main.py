@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import signal
 import sys
+from datetime import datetime, timedelta, timezone
 
 from src.config import settings
 from src.db.database import async_session, init_db
@@ -68,8 +69,18 @@ async def _refresh_markets() -> None:
             # get_all_active_markets has its own internal timeout via httpx (30s).
             markets = await polymarket.get_all_active_markets(max_markets=300)
             if markets:
-                _markets_cache = markets
-                log.info("markets_refreshed", count=len(_markets_cache))
+                # Filter to markets resolving within the configured window
+                deadline = datetime.now(timezone.utc) + timedelta(
+                    hours=settings.max_market_resolution_hours)
+                filtered = [
+                    m for m in markets
+                    if m.end_date and m.end_date <= deadline
+                ]
+                log.info("markets_refreshed",
+                         total=len(markets),
+                         within_window=len(filtered),
+                         window_hours=settings.max_market_resolution_hours)
+                _markets_cache = filtered if filtered else markets  # fallback if all filtered out
                 return
             else:
                 log.warning("markets_empty_response", attempt=attempt)

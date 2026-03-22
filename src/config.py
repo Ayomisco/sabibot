@@ -101,6 +101,7 @@ class Settings(BaseSettings):
     trading_mode: TradingMode = TradingMode.PAPER
     news_scan_interval_seconds: int = 1800  # 30 minutes
     market_analysis_interval_seconds: int = 1800  # 30 minutes
+    max_market_resolution_hours: float = 24.0  # only trade markets resolving within this window
     portfolio_rebalance_interval_seconds: int = 3600
     log_level: str = "INFO"
 
