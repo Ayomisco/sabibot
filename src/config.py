@@ -18,6 +18,7 @@ class TradingMode(str, Enum):
 
 class LLMProvider(str, Enum):
     GROQ = "groq"
+    GEMINI = "gemini"
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
     OLLAMA = "ollama"
@@ -34,6 +35,9 @@ class Settings(BaseSettings):
     # ── LLM Providers ────────────────────────────────────────────
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
+
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
 
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-haiku-4-5-20251001"

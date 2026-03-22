@@ -129,6 +129,8 @@ class LLMGateway:
         match provider:
             case LLMProvider.GROQ:
                 return await self._call_groq(prompt, system, temperature, max_tokens)
+            case LLMProvider.GEMINI:
+                return await self._call_gemini(prompt, system, temperature, max_tokens)
             case LLMProvider.ANTHROPIC:
                 return await self._call_anthropic(prompt, system, temperature, max_tokens)
             case LLMProvider.OPENAI:
@@ -182,6 +184,44 @@ class LLMGateway:
             model=settings.groq_model,
             prompt_tokens=usage.get("prompt_tokens", 0),
             completion_tokens=usage.get("completion_tokens", 0),
+        )
+
+    @with_retry(max_attempts=2, min_wait=2.0, retry_on=(httpx.TimeoutException,))
+    async def _call_gemini(
+        self, prompt: str, system: str, temperature: float, max_tokens: int
+    ) -> LLMResponse:
+        # Gemini generateContent endpoint — system instruction is a separate field
+        body: dict[str, Any] = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens,
+            },
+        }
+        if system:
+            body["systemInstruction"] = {"parts": [{"text": system}]}
+
+        resp = await self._http.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models"
+            f"/{settings.gemini_model}:generateContent",
+            params={"key": settings.gemini_api_key},
+            json=body,
+        )
+
+        if resp.status_code == 429:
+            raise RuntimeError("Gemini rate limited (429)")
+
+        resp.raise_for_status()
+        data = resp.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        usage = data.get("usageMetadata", {})
+
+        return LLMResponse(
+            content=text,
+            provider="gemini",
+            model=settings.gemini_model,
+            prompt_tokens=usage.get("promptTokenCount", 0),
+            completion_tokens=usage.get("candidatesTokenCount", 0),
         )
 
     @with_retry(max_attempts=2, min_wait=2.0, retry_on=(httpx.HTTPError, httpx.TimeoutException))
