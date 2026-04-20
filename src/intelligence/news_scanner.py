@@ -90,13 +90,17 @@ async def scan_all_sources() -> list[NewsItem]:
         )
         existing_urls = {row[0] for row in existing.fetchall()}
 
+    # Deduplicate against DB AND within this batch (RSS + GNews can return same URL)
+    seen_urls: set[str] = set(existing_urls)
     new_items: list[NewsItem] = []
     for item_dict in raw_items:
-        if item_dict["url"] and item_dict["url"] not in existing_urls:
+        url = item_dict.get("url")
+        if url and url not in seen_urls:
+            seen_urls.add(url)
             news_item = NewsItem(
                 source=item_dict["source"],
                 title=item_dict["title"],
-                url=item_dict["url"],
+                url=url,
                 summary=item_dict["summary"],
                 published_at=item_dict.get("published_at"),
                 processed=False,
