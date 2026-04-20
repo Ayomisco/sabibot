@@ -312,20 +312,22 @@ async def cmd_markets(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text("No markets loaded yet. Wait for next refresh cycle.")
         return
 
-    # Show top 15 markets by interesting prices (not too close to 0 or 1)
-    interesting = sorted(
-        _markets_cache,
-        key=lambda m: abs(m.outcome_prices.get("Yes", 0.5) - 0.5),
-    )[:15]
+    # Sort by 24h volume — most active markets first
+    top = sorted(_markets_cache, key=lambda m: m.volume_24h, reverse=True)[:10]
 
-    lines = ["Top Watched Markets\n" + "━" * 22 + "\n"]
-    for i, m in enumerate(interesting, 1):
+    lines = ["Top Active Markets\n" + "━" * 22 + "\n"]
+    for i, m in enumerate(top, 1):
         yes = m.outcome_prices.get("Yes", 0.5)
+        end = m.end_date.strftime("%b %d") if m.end_date else "?"
+        slug = m.market_slug
+        link = f"https://polymarket.com/market/{slug}" if slug else "https://polymarket.com/"
         lines.append(
-            f"\n{i}. {m.question[:55]}\n   YES: ${yes:.3f} | NO: ${1-yes:.3f}")
+            f"\n{i}. {m.question[:60]}\n"
+            f"   YES: ${yes:.3f} | NO: ${1-yes:.3f} | Vol: ${m.volume_24h:,.0f}\n"
+            f"   Ends: {end} | {link}"
+        )
 
-    lines.append(f"\n\nTotal: {len(_markets_cache)} markets")
-    lines.append("Browse: https://polymarket.com/")
+    lines.append(f"\n\nTotal: {len(_markets_cache)} markets loaded")
     await update.message.reply_text("\n".join(lines))
 
 
@@ -653,17 +655,19 @@ async def _send_markets(query) -> None:
     if not _markets_cache:
         msg = "No markets loaded yet."
     else:
-        interesting = sorted(
-            _markets_cache,
-            key=lambda m: abs(m.outcome_prices.get("Yes", 0.5) - 0.5),
-        )[:10]
-        lines = ["Top Markets\n" + "━" * 22 + "\n"]
-        for i, m in enumerate(interesting, 1):
+        top = sorted(_markets_cache, key=lambda m: m.volume_24h, reverse=True)[:8]
+        lines = ["Top Active Markets\n" + "━" * 22 + "\n"]
+        for i, m in enumerate(top, 1):
             yes = m.outcome_prices.get("Yes", 0.5)
+            end = m.end_date.strftime("%b %d") if m.end_date else "?"
+            slug = m.market_slug
+            link = f"https://polymarket.com/market/{slug}" if slug else "https://polymarket.com/"
             lines.append(
-                f"{i}. {m.question[:45]}\n   YES ${yes:.2f} | NO ${1-yes:.2f}")
-        lines.append(f"\n{len(_markets_cache)} markets")
-        lines.append("https://polymarket.com/")
+                f"{i}. {m.question[:50]}\n"
+                f"   YES ${yes:.3f} | Ends {end}\n"
+                f"   {link}"
+            )
+        lines.append(f"\n{len(_markets_cache)} markets total")
         msg = "\n".join(lines)
 
     keyboard = [
