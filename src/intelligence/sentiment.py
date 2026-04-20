@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from src.ai.reasoning import NewsAnalysis, analyze_news
+from src.ai.reasoning import analyze_news
 from src.utils.logger import get_logger
 
 log = get_logger("sentiment")

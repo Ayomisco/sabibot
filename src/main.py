@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import asyncio
 import signal
-import sys
 from datetime import datetime, timedelta, timezone
 
 from src.config import settings
@@ -133,7 +132,7 @@ async def news_scan_cycle() -> None:
         # Each item = 1 sentiment call + up to 2 probability calls = 3 calls max.
         # 3 items × 3 calls = 9 calls; the rate limiter in llm.py enforces 2.5s gaps
         # → ~22.5s of Groq time per cycle, well under the 45s window.
-        for i, news_item in enumerate(new_items[:3]):
+        for news_item in new_items[:3]:
             opportunities = await analyze_news_item(
                 headline=news_item.title,
                 body=news_item.summary,

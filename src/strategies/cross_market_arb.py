@@ -59,7 +59,7 @@ class CrossMarketArbStrategy(BaseStrategy):
         if uncached:
             texts = [m.question for m in uncached]
             embeddings = await embed_texts(texts)
-            for m, emb in zip(uncached, embeddings):
+            for m, emb in zip(uncached, embeddings, strict=False):
                 self._embedding_cache[m.condition_id] = emb
 
         # Find correlated pairs with price discrepancies

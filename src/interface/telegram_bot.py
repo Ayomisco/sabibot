@@ -18,8 +18,7 @@ Commands:
 
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, BotCommand, MenuButtonCommands
 from telegram.ext import (
@@ -293,7 +292,6 @@ async def cmd_trades(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
     lines = ["Open Positions\n" + "━" * 22 + "\n"]
     for p in positions[:10]:
-        emoji = "+" if p.unrealized_pnl >= 0 else "-"
         lines.append(
             f"\n{p.market_question[:50]}\n"
             f"  {p.side} | {p.shares:.1f} shares @ ${p.entry_price:.3f}\n"
@@ -305,7 +303,6 @@ async def cmd_trades(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 def _build_markets_text(markets_cache: list, limit_per_section: int = 5) -> str:
     """Build markets display with a 'Resolving This Week' section on top."""
-    from datetime import datetime, timedelta, timezone
     now = datetime.now(timezone.utc)
     week_cutoff = now + timedelta(days=7)
 
@@ -452,7 +449,6 @@ async def cmd_debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     from src.intelligence.news_scanner import _last_gnews_call, _gnews_cycle
     import sys
     import httpx
-    from datetime import datetime, timezone
 
     now = datetime.now(timezone.utc)
 
@@ -519,7 +515,7 @@ async def cmd_debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def cmd_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Manually trigger market refresh with step-by-step diagnostics."""
     import httpx as _httpx
-    from src.main import _refresh_markets, _markets_cache
+    from src.main import _refresh_markets
 
     await update.message.reply_text("Running market diagnostics...")
 
@@ -530,7 +526,7 @@ async def cmd_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         async with _httpx.AsyncClient(timeout=15.0) as c:
             r = await c.get("https://clob.polymarket.com/sampling-markets", params={"limit": 5})
             raw_data = r.json().get("data", [])
-            lines.append(f"\nStep 1 — Raw API call")
+            lines.append("\nStep 1 — Raw API call")
             lines.append(f"  Status : {r.status_code}")
             lines.append(f"  Raw mkts: {len(raw_data)}")
             if raw_data:
@@ -554,7 +550,7 @@ async def cmd_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     from src.main import _markets_cache as cache_after_ref
     after = len(cache_after_ref)
     from src.polymarket.client import polymarket
-    lines.append(f"\nStep 2 — Pipeline refresh")
+    lines.append("\nStep 2 — Pipeline refresh")
     lines.append(f"  Before : {before}")
     lines.append(f"  After  : {after}")
     lines.append(f"  Last err: {polymarket.last_error or 'none'}")
@@ -781,7 +777,6 @@ async def _send_debug(query) -> None:
     from src.main import _markets_cache, _signals_cache
     from src.polymarket.clob import clob
     from src.polymarket.client import polymarket
-    from datetime import datetime, timezone
     import httpx
 
     now = datetime.now(timezone.utc)

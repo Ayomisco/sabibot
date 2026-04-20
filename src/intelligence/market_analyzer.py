@@ -20,7 +20,7 @@ from src.ai.reasoning import estimate_probability
 from src.db.models import Signal, SignalDirection
 from src.intelligence.sentiment import SentimentResult, analyze_sentiment
 from src.polymarket.client import Market, polymarket
-from src.polymarket.markets import MatchResult, match_news_to_markets
+from src.polymarket.markets import match_news_to_markets
 from src.utils.logger import get_logger
 
 log = get_logger("market_analyzer")

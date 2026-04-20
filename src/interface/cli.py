@@ -77,7 +77,7 @@ async def cmd_status() -> None:
     await init_db()
     summary = await portfolio.get_summary()
 
-    console.print(f"\n[bold]Portfolio Summary[/bold]")
+    console.print("\n[bold]Portfolio Summary[/bold]")
     console.print(f"  Total Value:    ${summary.total_value_usd:.2f}")
     console.print(f"  Positions:      {len(summary.open_positions)}")
     console.print(f"  Unrealized P&L: ${summary.unrealized_pnl:+.2f}")

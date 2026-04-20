@@ -21,7 +21,6 @@ from src.config import settings
 from src.polymarket.constants import (
     BUY,
     SELL,
-    SIGNATURE_TYPE_EOA,
 )
 from src.utils.logger import get_logger
 from src.utils.retry import with_retry

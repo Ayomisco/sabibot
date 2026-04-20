@@ -47,7 +47,7 @@ STOP_WORDS = frozenset({
     "from", "as", "into", "through", "during", "before", "after", "above", "below",
     "between", "out", "off", "over", "under", "again", "further", "then", "once",
     "that", "this", "these", "those", "it", "its", "and", "but", "or", "nor",
-    "not", "no", "so", "than", "too", "very", "just", "about", "up", "if",
+    "not", "so", "than", "too", "very", "just", "about", "up", "if",
     "what", "which", "who", "whom", "when", "where", "why", "how", "all", "each",
     "market", "prediction", "yes", "no",
 })
