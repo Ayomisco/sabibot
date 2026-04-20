@@ -328,7 +328,7 @@ def _build_markets_text(markets_cache: list, limit_per_section: int = 5) -> str:
         lines.append("━" * 22)
         for i, m in enumerate(this_week[:limit_per_section], 1):
             yes = m.outcome_prices.get("Yes", 0.5)
-            end = m.end_date.strftime("%b %d")
+            end = m.end_date.strftime("%b %d %Y")
             slug = m.market_slug
             link = f"https://polymarket.com/market/{slug}" if slug else "https://polymarket.com/"
             lines.append(
@@ -342,7 +342,7 @@ def _build_markets_text(markets_cache: list, limit_per_section: int = 5) -> str:
     lines.append("━" * 22)
     for i, m in enumerate(rest[:limit_per_section], 1):
         yes = m.outcome_prices.get("Yes", 0.5)
-        end = m.end_date.strftime("%b %d") if m.end_date else "?"
+        end = m.end_date.strftime("%b %d %Y") if m.end_date else "unknown"
         slug = m.market_slug
         link = f"https://polymarket.com/market/{slug}" if slug else "https://polymarket.com/"
         lines.append(
