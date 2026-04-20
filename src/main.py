@@ -71,14 +71,17 @@ async def _refresh_markets() -> None:
             # get_all_active_markets has its own internal timeout via httpx (30s).
             markets = await polymarket.get_all_active_markets(max_markets=300)
             if markets:
-                # Include markets with no end_date (CLOB /sampling-markets rarely returns
-                # end_date_iso, so None-end_date markets must be kept).
-                # Only exclude markets with a known end_date beyond the configured window.
-                deadline = datetime.now(timezone.utc) + timedelta(
-                    hours=settings.max_market_resolution_hours)
+                # CLOB /sampling-markets rarely returns end_date_iso, so None-date markets
+                # must be kept (they are live, actively-traded markets).
+                # Drop markets that ended >7 days ago (stale, unresolved, untradeable).
+                # Drop markets resolving beyond the configured window.
+                now = datetime.now(timezone.utc)
+                stale_cutoff = now - timedelta(days=7)
+                deadline = now + timedelta(hours=settings.max_market_resolution_hours)
                 filtered = [
                     m for m in markets
-                    if m.end_date is None or m.end_date <= deadline
+                    if m.end_date is None
+                    or (m.end_date >= stale_cutoff and m.end_date <= deadline)
                 ]
                 log.info("markets_refreshed",
                          total=len(markets),

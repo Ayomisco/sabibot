@@ -311,7 +311,8 @@ def _build_markets_text(markets_cache: list, limit_per_section: int = 5) -> str:
     for m in markets_cache:
         if m.end_date:
             end = m.end_date if m.end_date.tzinfo else m.end_date.replace(tzinfo=timezone.utc)
-            if end <= week_cutoff:
+            # Only include in "this week" if it ends in the FUTURE (not already past)
+            if now <= end <= week_cutoff:
                 this_week.append(m)
             else:
                 rest.append(m)
