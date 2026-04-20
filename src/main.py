@@ -36,8 +36,10 @@ from src.strategies.cross_market_arb import CrossMarketArbStrategy
 from src.strategies.market_making import MarketMakingStrategy
 from src.strategies.mean_reversion import MeanReversionStrategy
 from src.strategies.momentum import MomentumStrategy
+from src.strategies.scalp_strategy import ScalpStrategy
 from src.strategies.sentiment_trade import SentimentTradeStrategy
 from src.strategies.timezone_arb import TimezoneArbStrategy
+from src.execution.exit_manager import exit_manager
 from src.utils.logger import get_logger, setup_logging
 from src.utils.notifications import AlertLevel, send_telegram
 from src.utils import scheduler as sched
@@ -48,6 +50,7 @@ log = get_logger("main")
 STRATEGIES = [
     TimezoneArbStrategy(),
     SentimentTradeStrategy(),
+    ScalpStrategy(),
     CrossMarketArbStrategy(),
     MarketMakingStrategy(),
     MomentumStrategy(),
@@ -183,6 +186,16 @@ async def news_scan_cycle() -> None:
         await send_telegram(f"Scan cycle error: {str(exc)[:200]}", AlertLevel.ERROR)
 
 
+async def scalp_exit_cycle() -> None:
+    """Close any scalp positions that have exceeded their hold time."""
+    if is_paused():
+        return
+    try:
+        await exit_manager.check_and_exit_scalps(_markets_cache)
+    except Exception as exc:
+        log.error("scalp_exit_cycle_error", error=str(exc))
+
+
 async def market_refresh_cycle() -> None:
     """Refresh market data and update strategy baselines."""
     try:
@@ -312,6 +325,8 @@ async def run() -> None:
         market_refresh_cycle, settings.market_analysis_interval_seconds, job_id="market_refresh")
     sched.add_interval_job(
         portfolio_cycle, settings.portfolio_rebalance_interval_seconds, job_id="portfolio")
+    sched.add_interval_job(
+        scalp_exit_cycle, settings.scalp_exit_check_seconds, job_id="scalp_exit")
     sched.start()
 
     # Background safety-net: retry market load every 30s if still empty

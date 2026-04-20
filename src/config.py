@@ -105,6 +105,12 @@ class Settings(BaseSettings):
     portfolio_rebalance_interval_seconds: int = 3600
     log_level: str = "INFO"
 
+    # ── Scalp Settings ───────────────────────────────────────────
+    scalp_hold_seconds: int = 900          # 15 minutes — exit scalp positions after this
+    scalp_min_volume_usd: float = 5_000.0  # minimum 24h volume to scalp
+    scalp_min_liquidity_usd: float = 2_000.0  # minimum liquidity to scalp
+    scalp_exit_check_seconds: int = 120    # how often to check for aged scalp positions
+
     # ── Derived ──────────────────────────────────────────────────
     @property
     def data_dir(self) -> Path:
