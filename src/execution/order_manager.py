@@ -13,16 +13,16 @@ Responsibilities:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from src.config import settings
 from src.db.database import async_session
 from src.db.models import Trade, TradeSide, TradeStatus
 from src.execution.risk_manager import RiskManager, risk_manager
 from src.polymarket.clob import CLOBClient, clob
-from src.strategies.base import TradeProposal
+from src.strategies.base import TradeProposal  # noqa: TC001
 from src.utils.logger import get_logger
 from src.utils.notifications import notify_trade
 
@@ -53,23 +53,34 @@ class OrderManager:
         """
         executed_trades: list[Trade] = []
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         for proposal in proposals:
             cid = proposal.condition_id
 
-            # Skip markets where we already hold an open position (DB check).
-            # This survives restarts and prevents compounding into same market.
+            # Block re-entry if this market has ANY trade in the cooldown window.
+            # Catches: (a) open PENDING/FILLED positions, (b) recently-exited scalps,
+            # (c) FAILED orders being retried within the window.
+            cooldown_cutoff = now - timedelta(
+                hours=settings.market_reentry_cooldown_hours
+            )
             async with async_session() as session:
                 existing = await session.execute(
                     select(Trade.id).where(
                         Trade.condition_id == cid,
-                        Trade.status.in_([TradeStatus.PENDING, TradeStatus.FILLED]),
-                        Trade.exit_at.is_(None),
+                        or_(
+                            # Still open — no exit yet
+                            (
+                                Trade.status.in_([TradeStatus.PENDING, TradeStatus.FILLED])
+                                & Trade.exit_at.is_(None)
+                            ),
+                            # Any trade placed within the cooldown window
+                            Trade.created_at >= cooldown_cutoff,
+                        ),
                     ).limit(1)
                 )
                 if existing.scalar() is not None:
-                    log.info("proposal_skipped_open_position",
+                    log.info("proposal_skipped_recent_trade",
                              market=proposal.market.question[:50])
                     continue
 
@@ -211,7 +222,7 @@ class OrderManager:
             edge=proposal.edge,
             confidence=proposal.confidence,
             status=TradeStatus.FILLED,  # Paper trades are immediately "filled"
-            order_id=f"paper_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+            order_id=f"paper_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}",
             notes=f"[PAPER] {proposal.reasoning[:450]}",
         )
 

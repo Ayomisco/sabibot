@@ -80,7 +80,7 @@ async def analyze_news_item(
         markets=markets,
         topics=sentiment.topics,
         entities=sentiment.entities,
-        top_k=2,  # Only analyze top 2 matches (limit LLM calls)
+        top_k=5,  # Top 5 candidates — more variety; LLM calls capped downstream
     )
 
     if not matches:

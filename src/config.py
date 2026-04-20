@@ -10,13 +10,13 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class TradingMode(str, Enum):
+class TradingMode(str, Enum):  # noqa: UP042
     LIVE = "live"
     PAPER = "paper"
     BACKTEST = "backtest"
 
 
-class LLMProvider(str, Enum):
+class LLMProvider(str, Enum):  # noqa: UP042
     GROQ = "groq"
     GEMINI = "gemini"
     ANTHROPIC = "anthropic"
@@ -110,6 +110,7 @@ class Settings(BaseSettings):
     scalp_min_volume_usd: float = 5_000.0  # minimum 24h volume to scalp
     scalp_min_liquidity_usd: float = 2_000.0  # minimum liquidity to scalp
     scalp_exit_check_seconds: int = 120    # how often to check for aged scalp positions
+    market_reentry_cooldown_hours: float = 4.0  # block re-entry on any market traded in this window
 
     # ── Derived ──────────────────────────────────────────────────
     @property
