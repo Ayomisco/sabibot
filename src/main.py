@@ -16,11 +16,14 @@ from __future__ import annotations
 
 import asyncio
 import signal
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
+from sqlalchemy import select
 
 from src.config import settings
 from src.db.database import async_session, init_db
-from src.db.models import Signal
+from src.db.models import NewsItem, Signal
+from src.execution.exit_manager import exit_manager
 from src.execution.order_manager import order_manager
 from src.execution.portfolio import portfolio
 from src.execution.risk_manager import risk_manager
@@ -30,7 +33,7 @@ from src.intelligence.signal_aggregator import aggregate_signals
 from src.interface.telegram_bot import is_paused, start_telegram_bot, stop_telegram_bot
 from src.polymarket.client import Market, polymarket
 from src.polymarket.clob import clob
-from src.strategies.base import TradeProposal
+from src.strategies.base import TradeProposal  # noqa: TC001
 from src.strategies.cross_market_arb import CrossMarketArbStrategy
 from src.strategies.market_making import MarketMakingStrategy
 from src.strategies.mean_reversion import MeanReversionStrategy
@@ -38,10 +41,9 @@ from src.strategies.momentum import MomentumStrategy
 from src.strategies.scalp_strategy import ScalpStrategy
 from src.strategies.sentiment_trade import SentimentTradeStrategy
 from src.strategies.timezone_arb import TimezoneArbStrategy
-from src.execution.exit_manager import exit_manager
+from src.utils import scheduler as sched
 from src.utils.logger import get_logger, setup_logging
 from src.utils.notifications import AlertLevel, send_telegram
-from src.utils import scheduler as sched
 
 log = get_logger("main")
 
@@ -75,7 +77,7 @@ async def _refresh_markets() -> None:
                 # must be kept (they are live, actively-traded markets).
                 # Drop markets that ended >7 days ago (stale, unresolved, untradeable).
                 # Drop markets resolving beyond the configured window.
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 stale_cutoff = now - timedelta(days=7)
                 deadline = now + timedelta(hours=settings.max_market_resolution_hours)
                 filtered = [
@@ -122,11 +124,35 @@ async def news_scan_cycle() -> None:
 
         # 2. Scan for new news items
         new_items = await scan_all_sources()
-        if not new_items:
+
+        # Supplement with unprocessed items already in DB (e.g. from prior cycles
+        # that were skipped due to the 3-item cap, or articles saved before analysis
+        # could run). This ensures we never starve after the initial DB fill.
+        items_to_process = list(new_items)
+        needed = max(0, 3 - len(items_to_process))
+        if needed > 0:
+            new_urls = {item.url for item in items_to_process}
+            cutoff = datetime.now(UTC) - timedelta(hours=24)
+            async with async_session() as session:
+                result = await session.execute(
+                    select(NewsItem)
+                    .where(NewsItem.processed.is_(False))  # type: ignore[arg-type]
+                    .where(NewsItem.created_at >= cutoff)
+                    .order_by(NewsItem.created_at.desc())
+                    .limit(needed * 3)  # fetch extra then filter by URL
+                )
+                db_backlog = result.scalars().all()
+            for item in db_backlog:
+                if item.url not in new_urls and len(items_to_process) < 3:
+                    items_to_process.append(item)
+                    new_urls.add(item.url)
+
+        if not items_to_process:
             log.debug("scan_cycle_no_new_news")
             return
 
         log.info("scan_cycle_start", new_items=len(new_items),
+                 from_db_backlog=len(items_to_process) - len(new_items),
                  markets=len(_markets_cache))
 
         # 3. Analyze each news item
@@ -137,13 +163,21 @@ async def news_scan_cycle() -> None:
         # Each item = 1 sentiment call + up to 2 probability calls = 3 calls max.
         # 3 items × 3 calls = 9 calls; the rate limiter in llm.py enforces 2.5s gaps
         # → ~22.5s of Groq time per cycle, well under the 45s window.
-        for news_item in new_items[:3]:
+        for news_item in items_to_process:
             opportunities = await analyze_news_item(
                 headline=news_item.title,
                 body=news_item.summary,
                 source=news_item.source,
                 markets=_markets_cache,
             )
+
+            # Mark the news item as processed regardless of outcome
+            if news_item.id is not None:
+                async with async_session() as session:
+                    db_item = await session.get(NewsItem, news_item.id)
+                    if db_item:
+                        db_item.processed = True
+                        await session.commit()
 
             if not opportunities:
                 continue
