@@ -29,6 +29,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sqlalchemy import select
+
 from src.config import settings
 from src.strategies.base import TradeProposal
 from src.utils.logger import get_logger
@@ -189,6 +191,32 @@ class RiskManager:
         self._market_exposure[condition_id] = (
             self._market_exposure.get(condition_id, 0.0) + amount_usd
         )
+
+    async def restore_from_db(self) -> None:
+        """
+        Rebuild in-memory exposure state from open DB positions.
+        Must be called once at startup so restarts don't lose exposure tracking.
+        """
+        from src.db.database import async_session
+        from src.db.models import Trade, TradeStatus
+        async with async_session() as session:
+            result = await session.execute(
+                select(Trade.condition_id, Trade.amount_usd).where(
+                    Trade.status.in_([TradeStatus.PENDING, TradeStatus.FILLED]),
+                    Trade.exit_at.is_(None),
+                )
+            )
+            rows = result.fetchall()
+
+        self._total_exposure = 0.0
+        self._market_exposure = {}
+        for cid, amount in rows:
+            self._total_exposure += amount
+            self._market_exposure[cid] = self._market_exposure.get(cid, 0.0) + amount
+
+        log.info("risk_state_restored",
+                 open_positions=len(rows),
+                 total_exposure=f"${self._total_exposure:.2f}")
 
     def record_exit(self, condition_id: str, amount_usd: float) -> None:
         """Update exposure tracking after closing a position."""

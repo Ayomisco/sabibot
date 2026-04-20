@@ -252,7 +252,7 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         f"Positions: {len(summary.open_positions)}\n"
         f"Unrealized P&L: ${summary.unrealized_pnl:+.2f}\n"
         f"Today P&L: ${summary.realized_pnl_today:+.2f}\n"
-        f"Total P&L: ${summary.realized_pnl_total:+.2f}\n"
+        f"Total P&L: ${summary.realized_pnl_total + summary.unrealized_pnl:+.2f}\n"
         f"Win Rate: {summary.win_rate:.0%}\n"
         f"Total Trades: {summary.total_trades}\n\n"
         "Risk\n"
@@ -352,7 +352,7 @@ def _build_markets_text(markets_cache: list, limit_per_section: int = 5) -> str:
             f"   {link}"
         )
 
-    lines.append(f"\nTotal: {len(markets_cache)} markets loaded")
+    lines.append(f"\nShowing top {min(len(this_week), limit_per_section) + min(len(rest), limit_per_section)} of {len(markets_cache)} markets loaded")
     return "\n".join(lines)
 
 
@@ -367,7 +367,7 @@ async def cmd_markets(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text("No markets loaded yet. Wait for next refresh cycle.")
         return
 
-    await update.message.reply_text(_build_markets_text(_markets_cache))
+    await update.message.reply_text(_build_markets_text(_markets_cache, limit_per_section=10))
 
 
 # ── /signals — Active signals ────────────────────────────────────

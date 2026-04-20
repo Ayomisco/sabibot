@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import select
+
 from src.config import settings
 from src.db.database import async_session
 from src.db.models import Trade, TradeSide, TradeStatus
@@ -55,6 +57,21 @@ class OrderManager:
 
         for proposal in proposals:
             cid = proposal.condition_id
+
+            # Skip markets where we already hold an open position (DB check).
+            # This survives restarts and prevents compounding into same market.
+            async with async_session() as session:
+                existing = await session.execute(
+                    select(Trade.id).where(
+                        Trade.condition_id == cid,
+                        Trade.status.in_([TradeStatus.PENDING, TradeStatus.FILLED]),
+                        Trade.exit_at.is_(None),
+                    ).limit(1)
+                )
+                if existing.scalar() is not None:
+                    log.info("proposal_skipped_open_position",
+                             market=proposal.market.question[:50])
+                    continue
 
             # Skip markets with an existing pending order (30-min cooldown)
             pending_since = self._pending_markets.get(cid)

@@ -261,6 +261,10 @@ async def run() -> None:
     # Initialize subsystems
     await init_db()
 
+    # Restore risk manager exposure state from open DB positions
+    # (prevents re-entering same markets after a restart)
+    await risk_manager.restore_from_db()
+
     # Fetch markets FIRST — retry every 10s for up to 90s if needed
     await _refresh_markets()
     if not _markets_cache:
